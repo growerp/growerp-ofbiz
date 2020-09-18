@@ -24,10 +24,14 @@ under the License.
     <vendor></vendor>
     <version>1.0</version>
 
-    <service name="noSyntaxError" engine="interface">
+    <service name="getCompanies" engine="groovy" export="true" action="GET"
+        location="component://growerp/src/100/PartyServices100.groovy" 
+                invoke="getCompanies">
         <description>
-            Dummy service to prevent empty files and syntax error - Remove when the 1st real service will be added here 
+            Get companies registered within the system.
         </description>
+        <attribute name="input" type="String" mode="IN"/>
+        <attribute name="companies" type="String" mode="OUT"/>
     </service> 
     
 </services>
