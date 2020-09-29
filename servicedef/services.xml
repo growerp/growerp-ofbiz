@@ -24,14 +24,25 @@ under the License.
     <vendor></vendor>
     <version>1.0</version>
 
-    <service name="getCompanies" engine="groovy" export="true" action="GET"
+    <service name="createCompany" engine="groovy" export="true" action="POST"
+        location="component://growerp/src/100/PartyServices100.groovy" 
+                invoke="createCompany">
+        <description>
+            Create a new company in the system (add admin person) later
+        </description>
+        <attribute name="company" type="Map" mode="INOUT" optional="true"/>
+    </service> 
+
+    <service name="getCompanies" engine="groovy" export="true" action="GET" auth="false"
         location="component://growerp/src/100/PartyServices100.groovy" 
                 invoke="getCompanies">
         <description>
-            Get companies registered within the system.
+            Get companies registered within the system or when partyId is provided a single company.
         </description>
-        <attribute name="input" type="String" mode="IN"/>
-        <attribute name="companies" type="String" mode="OUT"/>
+        <attribute name="partyId" type="String" mode="IN" optional="true"/><!-- if provided single company only -->
+        <attribute name="classificationId" type="String" mode="IN" optional="true"/>
+        <attribute name="companies" type="List" mode="OUT" optional="true"/>
+        <attribute name="company" type="Map" mode="OUT" optional="true"/>
     </service> 
     
 </services>

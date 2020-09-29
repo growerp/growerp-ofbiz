@@ -20,4 +20,13 @@ under the License.
 
 <entity-engine-xml>
 
+    <PartyClassificationType partyClassificationTypeId="PcltMobileApp" description="Flutter Application"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppAdmin" partyClassificationTypeId="PcltMobileApp" description="Admin app to maintain backoffice data, products, categories, orders"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppRestaurant" partyClassificationTypeId="PcltMobileApp" description="App for restaurant,cafe,bar"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppEcommerceShop" partyClassificationTypeId="PcltMobileApp" description="App for Ecommerce and shop"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppHospital" partyClassificationTypeId="PcltMobileApp" description="App for Hospital/Clinic/Dentist/Doctor/Beauty Shop"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppService" partyClassificationTypeId="PcltMobileApp" description="App for Service company, freelancer, wfh"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppHotel" partyClassificationTypeId="PcltMobileApp" description="App for Hotel, Bed &amp; Breakfeast"/>
+    <PartyClassificationGroup partyClassificationGroupId="AppRealtor" partyClassificationTypeId="PcltMobileApp" description="App for Realtor/property management"/>
+
 </entity-engine-xml>

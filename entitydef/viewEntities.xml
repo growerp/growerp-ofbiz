@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="http://ofbiz.apache.org/dtds/entitymodel.xsd">
+    <!-- ========================================================= -->
+    <!-- ======================== Defaults ======================= -->
+    <!-- ========================================================= -->
+    <title>Entity of Growerp Component</title>
+    <description>None</description>
+    <copyright></copyright>
+    <version></version>
+
+    <view-entity entity-name="CompanyPreferenceAndClassification" package-name="org.growerp.party">
+        <member-entity entity-alias="PARTY" entity-name="Party"/>
+        <member-entity entity-alias="ORG" entity-name="PartyGroup"/>
+        <member-entity entity-alias="PP" entity-name="PartyAcctgPreference"/>
+        <member-entity entity-alias="PARTYCLASS" entity-name="PartyClassification"/>
+        <member-entity entity-alias="PCG" entity-name="PartyClassificationGroup"/>
+        <alias name="partyId" entity-alias="PARTY"/>
+        <alias name="statusId" entity-alias="PARTY"/>
+        <alias name="organizationName" entity-alias="ORG" field="groupName"/>
+        <alias name="baseCurrencyUomId" entity-alias="PP"/>
+        <alias name="partyClassificationGroupId" entity-alias="PCG"/>
+        <alias name="description" entity-alias="PCG"/>
+        <view-link entity-alias="PARTY" rel-entity-alias="ORG">
+            <key-map field-name="partyId"/></view-link>
+        <view-link entity-alias="PARTY" rel-entity-alias="PP">
+            <key-map field-name="partyId"/></view-link>
+        <view-link entity-alias="PARTY" rel-entity-alias="PARTYCLASS">
+            <key-map field-name="partyId"/></view-link>
+        <view-link entity-alias="PARTYCLASS" rel-entity-alias="PCG">
+            <key-map field-name="partyClassificationGroupId"/></view-link>
+        <entity-condition>
+            <condition-expr entity-alias="PARTY" field-name="statusId"
+                operator="not-equals" value="PARTY_DISABLED"/>
+        </entity-condition>
+    </view-entity>
+</entitymodel>
