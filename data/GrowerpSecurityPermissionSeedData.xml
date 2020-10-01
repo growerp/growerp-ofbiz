@@ -19,6 +19,8 @@ under the License.
 -->
 
 <entity-engine-xml>
+
+    <!-- not used -->
     <SecurityPermission description="View operations in the Growerp Component." permissionId="GROWERP_VIEW"/>
     <SecurityPermission description="Create operations in the Growerp Component." permissionId="GROWERP_CREATE"/>
     <SecurityPermission description="Update operations in the Growerp Component." permissionId="GROWERP_UPDATE"/>

@@ -32,7 +32,7 @@ under the License.
     <!-- <entity-resource type="eca" reader-name="main" loader="main" location="entitydef/eecas.xml"/> -->
     <entity-resource type="data" reader-name="seed" loader="main" location="data/GrowerpTypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/GrowerpSecurityPermissionSeedData.xml"/>
-    <entity-resource type="data" reader-name="demo" loader="main" location="data/GrowerpSecurityGroupDemoData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/GrowerpSecurityGroupSeedData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/GrowerpDemoData.xml"/>
 
     <!-- service resources: model(s), eca(s) and group definitions -->

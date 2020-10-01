@@ -19,11 +19,9 @@ under the License.
 -->
 
 <entity-engine-xml>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FULLADMIN" permissionId="GROWERP_ADMIN"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="GROWERP_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="GROWERP_DELETE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="GROWERP_UPDATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="GROWERP_VIEW"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="VIEWADMIN" permissionId="GROWERP_VIEW"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="BIZADMIN" permissionId="GROWERP_ADMIN"/>
+    <SecurityGroup groupId="GROWERP_M_ADMIN" groupName="growerp" description="Admin"/> 
+    <SecurityGroup groupId="GROWERP_M_EMPLOYEE" groupName="growerp" description="Employee"/> 
+    <SecurityGroup groupId="GROWERP_M_CUSTOMER" groupName="growerp" description="Customer"/>
+
+    <!-- userlogins are connected to one of the groups over UserLoginSecurityGroup entity -->
 </entity-engine-xml>

@@ -24,13 +24,26 @@ under the License.
     <vendor></vendor>
     <version>1.0</version>
 
-    <service name="createCompany" engine="groovy" export="true" action="POST"
+    <service name="registerUserAndCompany" engine="groovy" export="true" action="POST" auth="false"
         location="component://growerp/src/100/PartyServices100.groovy" 
-                invoke="createCompany">
+                invoke="registerUserAndCompany">
         <description>
             Create a new company in the system (add admin person) later
         </description>
-        <attribute name="company" type="Map" mode="INOUT" optional="true"/>
+
+        <attribute name="companypartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="companyName" type="String" mode="IN"/>
+        <attribute name="currencyId" type="String" mode="IN"/>
+        <attribute name="classificationId" type="String" mode="IN"/>
+        <attribute name="companyEmail" type="String" mode="IN"/>
+        <attribute name="emailAddress" type="String" mode="IN"/>
+        <attribute name="firstName" type="String" mode="IN"/>
+        <attribute name="lastName" type="String" mode="IN"/>
+        <attribute name="username" type="String" mode="IN"/>
+        <attribute name="userGroupId" type="String" mode="IN"/>
+
+        <attribute name="company" type="Map" mode="OUT" optional="true"/>
+        <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
 
     <service name="getCompanies" engine="groovy" export="true" action="GET" auth="false"
@@ -43,6 +56,18 @@ under the License.
         <attribute name="classificationId" type="String" mode="IN" optional="true"/>
         <attribute name="companies" type="List" mode="OUT" optional="true"/>
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
+    </service> 
+    
+    <service name="getUsers" engine="groovy" export="true" action="GET"
+        location="component://growerp/src/100/PartyServices100.groovy" 
+                invoke="getUsers">
+        <description>
+            Get users registered within the system by company or when partyId is provided a single user.
+        </description>
+        <attribute name="userPartyId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
+        <attribute name="companyPartyId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
+        <attribute name="users" type="List" mode="OUT" optional="true"/>
+        <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
     
 </services>
