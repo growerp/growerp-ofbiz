@@ -5,11 +5,10 @@ import org.apache.ofbiz.entity.condition.EntityConditionBuilder
 import org.apache.ofbiz.entity.GenericValue
 import org.apache.ofbiz.entity.util.EntityUtil
 import org.apache.ofbiz.service.ModelService
-
+import org.apache.ofbiz.service.ServiceUtil
 
 def registerUserAndCompany() {
     Map result = success()
-    logInfo("==register=======params: ${parameters}")
     parameters.userLogin = from("UserLogin").where("userLoginId", "system").queryOne();
 
     if (!parameters.companyPartyId) {
@@ -47,21 +46,21 @@ def registerUserAndCompany() {
         with: [ partyId: personResult.partyId,
                 emailAddress: parameters.emailAddress,
                 contactMechPurposeTypeId: 'PRIMARY_EMAIL']
-    run service: 'createUserLogin',
+    loginResult = run service: 'createUserLogin',
         with: [ partyId: personResult.partyId,
-                userLoginId: parameters.emailAddress,
+                userLoginId: parameters.username,
                 currentPassword: 'qqqqqq9!',
                 currentPasswordVerify: 'qqqqqq9!']
+    if (ServiceUtil.isError(loginResult)) return loginResult
     run service: 'addUserLoginToSecurityGroup',
-        with: [ userLoginId: parameters.emailAddress,
+        with: [ userLoginId: parameters.username,
                 groupId: parameters.userGroupId,
                 fromDate: UtilDateTime.nowTimestamp()]
     run service: 'createPartyRelationship',
-        with: [ partyIdFrom: personResult.partyId,
-                partyIdTo: companyResult.partyId,
-                roleTypeIdTo: "INTERNAL_ORGANIZATIO",
+        with: [ partyIdFrom: companyResult.partyId,
+                roleTypeIdFrom: "INTERNAL_ORGANIZATIO",
+                partyIdTo: personResult.partyId,
                 fromDate: UtilDateTime.nowTimestamp()]
-    logInfo("======getting user and company")
     resultCompany = run service: "getCompanies",
         with: [partyId: companyResult.partyId]
     result.company = resultCompany.company
@@ -72,7 +71,6 @@ def registerUserAndCompany() {
 }
 
 def getCompanies() {
-    logInfo("==get comp======params: ${parameters}")
     Map result = success()
 
     if (!parameters.partyId) {
@@ -105,7 +103,6 @@ def getCompanies() {
     return result
 }
 def getUsers() {
-    logInfo("==get user=======params: ${parameters}")
     Map result = success()
 
     if (parameters.companyPartyId) {
@@ -114,19 +111,20 @@ def getUsers() {
             .queryList()
     } else if (parameters.userPartyId){ // specific user
         userList = from('PersonAndLoginGroup')
-            .where([userPartyId: parameters.userPartyId])
+            .where([personPartyId: parameters.userPartyId])
             .queryList()
     } 
     if (!parameters.userPartyId) result.users = [];
     userList.each {
-        resultEmail = runService('getPartyEmail', [partyId: it.userPartyId,
+        resultEmail = runService('getPartyEmail', [partyId: it.personPartyId,
                                 contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
         // see model in https://github.com/growerp/growerp/blob/master/lib/models/user.dart
         user = [ 
-            partyId: it.userPartyId,
+            partyId: it.personPartyId,
             firstName: it.firstName,
             lastName: it.lastName,
             email: resultEmail.emailAddress,
+            name: it.userLoginId,
             userGroupId: it.groupId,
             image: null,
         ]

@@ -56,54 +56,56 @@ under the License.
 
     <view-entity entity-name="CompanyPersonAndLoginGroup" package-name="org.growerp.party">
         <description>get all people related to a certain companyId = PR => toPartyId</description>
+        <member-entity entity-alias="PTYORG" entity-name="Party"/>
         <member-entity entity-alias="PR" entity-name="PartyRelationship"/>
         <member-entity entity-alias="PTYPERSON" entity-name="Party"/>
-        <member-entity entity-alias="PTYORG" entity-name="Party"/>
         <member-entity entity-alias="PERSON" entity-name="Person"/>
         <member-entity entity-alias="ACCT" entity-name="UserLogin"/>
         <member-entity entity-alias="UGMEM" entity-name="UserLoginSecurityGroup"/>
         <member-entity entity-alias="UG" entity-name="SecurityGroup"/>
 
-        <alias entity-alias="PR" name="companyPartyId" field="partyIdTo"/>
-        <alias entity-alias="PR" name="companyRoleTypeId" field="roleTypeIdTo"/>
-        <alias entity-alias="PR" name="userPartyId" field="partyIdFrom"/>
+        <alias entity-alias="PTYORG" name="companyPartyId" field="partyId"/>
+        <alias entity-alias="PTYORG" name="orgStatusId" field="statusId"/>
+        <alias entity-alias="PR" name="companyRoleTypeId" field="roleTypeIdFrom"/>
         <alias entity-alias="PR" name="fromDate"/><!-- date registered in the system -->
         <alias entity-alias="PR" name="thruDate"/>
+        <alias entity-alias="PTYPERSON" name="personPartyId" field="partyId"/>
         <alias entity-alias="PTYPERSON" name="personStatusId" field="statusId"/>
-        <alias entity-alias="PTYORG" name="orgStatusId" field="statusId"/>
         <alias entity-alias="PERSON" name="firstName"/>
         <alias entity-alias="PERSON" name="lastName"/>
         <alias entity-alias="PERSON" name="externalId" field="otherLocal"/>
         <alias entity-alias="ACCT" name="userLoginId"/>
         <alias entity-alias="ACCT" name="username" field="userLoginId"/>
-        <alias entity-alias="ACCT" name="locale" field="externalAuthId"/>
+        <alias entity-alias="ACCT" name="uiLocale" field="externalAuthId"/>
         <alias entity-alias="UG" name="groupId"/>
-        <alias entity-alias="UG" name="description"/>
+        <alias entity-alias="UG" name="groupDescription" field="description"/>
         <alias entity-alias="UG" name="groupName"/>
         <alias entity-alias="UGMEM" name="ugFromDate" field="fromDate"/>
         <alias entity-alias="UGMEM" name="ugThruDate" field="thruDate"/>
 
+        <view-link entity-alias="PTYORG" rel-entity-alias="PR">
+            <key-map field-name="partyId" rel-field-name="partyIdFrom"/></view-link>
         <view-link entity-alias="PR" rel-entity-alias="PTYPERSON">
-            <key-map field-name="partyIdFrom" rel-field-name="partyId"/></view-link>
-        <view-link entity-alias="PR" rel-entity-alias="PTYORG">
             <key-map field-name="partyIdTo" rel-field-name="partyId"/></view-link>
-        <view-link entity-alias="PR" rel-entity-alias="ACCT">
-            <key-map field-name="partyIdFrom" rel-field-name="partyId"/></view-link>
+        <view-link entity-alias="PTYPERSON" rel-entity-alias="PERSON">
+            <key-map field-name="partyId"/></view-link>
+        <view-link entity-alias="PERSON" rel-entity-alias="ACCT">
+            <key-map field-name="partyId"></key-map></view-link>
         <view-link entity-alias="ACCT" rel-entity-alias="UGMEM">
             <key-map field-name="userLoginId"/></view-link>
         <view-link entity-alias="UGMEM" rel-entity-alias="UG">
             <key-map field-name="groupId"/></view-link>
         <entity-condition filter-by-date="true">
             <condition-list combine="and">
-                <condition-expr entity-alias="PTYPERSON" field-name="statusId"
-                    operator="not-equals" value="PARTY_DISABLED"/>
                 <condition-expr entity-alias="PTYORG" field-name="statusId"
                     operator="not-equals" value="PARTY_DISABLED"/>
-                <condition-expr entity-alias="PR" field-name="roleTypeIdTo"
-                    value="INTERNAL_ORGANIZATION"/>
+                <condition-expr entity-alias="PR" field-name="roleTypeIdFrom"
+                    value="INTERNAL_ORGANIZATIO"/>
+                <condition-expr entity-alias="PTYPERSON" field-name="statusId"
+                    operator="not-equals" value="PARTY_DISABLED"/>
                 <condition-expr entity-alias="UG" field-name="groupName"
                     value="growerp"/>
-        </condition-list>
+            </condition-list>
         </entity-condition>
     </view-entity>
 
@@ -116,21 +118,21 @@ under the License.
         <member-entity entity-alias="UG" entity-name="SecurityGroup"/>
 
         <alias entity-alias="PTYPERSON" name="personStatusId" field="statusId"/>
-        <alias entity-alias="PERSON" name="userPartyId" field="partyId"/>
+        <alias entity-alias="PERSON" name="personPartyId" field="partyId"/>
         <alias entity-alias="PERSON" name="firstName"/>
         <alias entity-alias="PERSON" name="lastName"/>
         <alias entity-alias="PERSON" name="externalId" field="otherLocal"/>
         <alias entity-alias="ACCT" name="userLoginId"/>
-        <alias entity-alias="ACCT" name="locale" field="externalAuthId"/>
+        <alias entity-alias="ACCT" name="uiLocale" field="externalAuthId"/>
         <alias entity-alias="UG" name="groupId"/>
-        <alias entity-alias="UG" name="description"/>
+        <alias entity-alias="UG" name="groupDescription" field="description"/>
         <alias entity-alias="UG" name="groupName"/>
         <alias entity-alias="UGMEM" name="fromDate"/>
         <alias entity-alias="UGMEM" name="thruDate"/>
 
         <view-link entity-alias="PTYPERSON" rel-entity-alias="PERSON">
             <key-map field-name="partyId"/></view-link>
-        <view-link entity-alias="PTYPERSON" rel-entity-alias="ACCT">
+        <view-link entity-alias="PERSON" rel-entity-alias="ACCT">
             <key-map field-name="partyId"/></view-link>
         <view-link entity-alias="ACCT" rel-entity-alias="UGMEM">
             <key-map field-name="userLoginId"/></view-link>
