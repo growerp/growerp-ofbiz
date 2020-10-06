@@ -24,7 +24,20 @@ under the License.
     <vendor></vendor>
     <version>1.0</version>
 
-    <service name="registerUserAndCompany" engine="groovy" export="true" action="POST" auth="false"
+    <service name="getCompanies100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="getCompanies action="GET" auth="false"">
+        <description>
+            Get companies registered within the system or when partyId is provided a single company.
+        </description>
+        <attribute name="partyId" type="String" mode="IN" optional="true"/><!-- if provided single company only -->
+        <attribute name="classificationId" type="String" mode="IN" optional="true"/>
+        <attribute name="companies" type="List" mode="OUT" optional="true"/>
+        <attribute name="company" type="Map" mode="OUT" optional="true"/>
+    </service> 
+    
+    <service name="registerUserAndCompany100" engine="groovy" export="true" 
+        action="POST" auth="false"
         location="component://growerp/src/100/PartyServices100.groovy" 
                 invoke="registerUserAndCompany">
         <description>
@@ -41,24 +54,24 @@ under the License.
         <attribute name="lastName" type="String" mode="IN"/>
         <attribute name="username" type="String" mode="IN"/>
         <attribute name="userGroupId" type="String" mode="IN"/>
+        <attribute name="password" type="String" mode="IN"/>
+        <attribute name="passwordVerify" type="String" mode="IN"/>
 
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
 
-    <service name="getCompanies" engine="groovy" export="true" action="GET" auth="false"
-        location="component://growerp/src/100/PartyServices100.groovy" 
-                invoke="getCompanies">
+    <service name="getAuthenticate100" engine="groovy" export="true" action="GET"
+            location="component://growerp/src/100/PartyServices100.groovy" 
+            invoke="getAuthenticate">
         <description>
-            Get companies registered within the system or when partyId is provided a single company.
+            Get Company and user information using token.
         </description>
-        <attribute name="partyId" type="String" mode="IN" optional="true"/><!-- if provided single company only -->
-        <attribute name="classificationId" type="String" mode="IN" optional="true"/>
-        <attribute name="companies" type="List" mode="OUT" optional="true"/>
+        <attribute name="user" type="Map" mode="OUT" optional="true"/>
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
     </service> 
     
-    <service name="getUsers" engine="groovy" export="true" action="GET"
+    <service name="getUsers100" engine="groovy" export="true" action="GET"
         location="component://growerp/src/100/PartyServices100.groovy" 
                 invoke="getUsers">
         <description>
@@ -69,5 +82,15 @@ under the License.
         <attribute name="users" type="List" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
+
+    <service name="getRelatedCompany100" engine="groovy"
+        location="component://growerp/src/100/CommonServices100.groovy" 
+                invoke="getRelatedCompany">
+        <description>
+            get related company of a user.
+        </description>
+        <attribute name="userPartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="companyPartyId" type="String" mode="OUT" optional="true"/>
+    </service>
     
 </services>

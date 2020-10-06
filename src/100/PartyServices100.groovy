@@ -7,9 +7,44 @@ import org.apache.ofbiz.entity.util.EntityUtil
 import org.apache.ofbiz.service.ModelService
 import org.apache.ofbiz.service.ServiceUtil
 
+def getCompanies() {
+    Map result = success()
+
+    if (!parameters.partyId) {
+        companyList = from('CompanyPreferenceAndClassification')
+            .where([partyClassificationGroupId:parameters.classificationId])
+            .queryList()
+    } else {
+        companyList = from('CompanyPreferenceAndClassification')
+            .where([partyId:parameters.partyId])
+            .queryList()
+    }
+    if (!parameters.partyId) result.companies = [];
+    companyList.each {
+        resultEmail = runService('getPartyEmail', [partyId: it.partyId,
+                                contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
+        resultUsers = runService('getUsers100', [companyPartyId: it.partyId])
+        company = [ // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
+            partyId: it.partyId,
+            name: it.organizationName,
+            classificationId: it.partyClassificationGroupId,
+            classificationDescr: it.description,
+            email: resultEmail.emailAddress,
+            currencyId: it.baseCurrencyUomId,
+            image: null,
+            employees: resultUsers.users
+        ]
+        if (!parameters.partyId) result.companies.add(company)
+        else result.company = company
+    }
+    logInfo("=Get companies:==${result.companies? result.companies.size():''} ${result.company?1:''} found")
+    return result
+}
+
 def registerUserAndCompany() {
     Map result = success()
-    parameters.userLogin = from("UserLogin").where("userLoginId", "system").queryOne();
+    parameters.userLogin = from("UserLogin")
+        .where("userLoginId", "system").queryOne();
 
     if (!parameters.companyPartyId) {
         companyResult = run service: 'createPartyGroup',
@@ -49,59 +84,27 @@ def registerUserAndCompany() {
     loginResult = run service: 'createUserLogin',
         with: [ partyId: personResult.partyId,
                 userLoginId: parameters.username,
-                currentPassword: 'qqqqqq9!',
-                currentPasswordVerify: 'qqqqqq9!']
+                currentPassword: parameters.password,
+                currentPasswordVerify: parameters.passwordVerify]
     if (ServiceUtil.isError(loginResult)) return loginResult
     run service: 'addUserLoginToSecurityGroup',
         with: [ userLoginId: parameters.username,
                 groupId: parameters.userGroupId,
                 fromDate: UtilDateTime.nowTimestamp()]
     run service: 'createPartyRelationship',
-        with: [ partyIdFrom: companyResult.partyId,
-                roleTypeIdFrom: "INTERNAL_ORGANIZATIO",
-                partyIdTo: personResult.partyId,
+        with: [ partyIdTo: companyResult.partyId,
+                roleTypeIdTo: "INTERNAL_ORGANIZATIO",
+                partyIdFrom: personResult.partyId,
                 fromDate: UtilDateTime.nowTimestamp()]
-    resultCompany = run service: "getCompanies",
+    resultCompany = run service: "getCompanies100",
         with: [partyId: companyResult.partyId]
     result.company = resultCompany.company
-    resultUser = run service: "getUsers",
+    resultUser = run service: "getUsers100",
         with: [userPartyId: personResult.partyId]
     result.user = resultUser.user
     return result
 }
 
-def getCompanies() {
-    Map result = success()
-
-    if (!parameters.partyId) {
-        companyList = from('CompanyPreferenceAndClassification')
-            .where([partyClassificationGroupId:parameters.classificationId])
-            .queryList()
-    } else {
-        companyList = from('CompanyPreferenceAndClassification')
-            .where([partyId:parameters.partyId])
-            .queryList()
-    }
-    if (!parameters.partyId) result.companies = [];
-    companyList.each {
-        resultEmail = runService('getPartyEmail', [partyId: it.partyId,
-                                contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
-        resultUsers = runService('getUsers', [companyPartyId: it.partyId])
-        company = [ // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
-            partyId: it.partyId,
-            name: it.organizationName,
-            classificationId: it.partyClassificationGroupId,
-            classificationDescr: it.description,
-            email: resultEmail.emailAddress,
-            currencyId: it.baseCurrencyUomId,
-            image: null,
-            employees: resultUsers.users
-        ]
-        if (!parameters.partyId) result.companies.add(company)
-        else result.company = company
-    }
-    return result
-}
 def getUsers() {
     Map result = success()
 
@@ -126,10 +129,25 @@ def getUsers() {
             email: resultEmail.emailAddress,
             name: it.userLoginId,
             userGroupId: it.groupId,
+            groupDescription: it.groupDescription,
             image: null,
         ]
         if (!parameters.userPartyId) result.users.add(user)
         else result.user = user
     }
+    return result
+}
+
+def getAuthenticate() {
+    Map result = success()
+    resultUser = run service: "getUsers100",
+        with: [userPartyId: parameters.userLogin.partyId]
+    result.user = resultUser.user
+
+    resultRelCompany = run service: 'getRelatedCompany100'
+
+    resultCompany = run service: "getCompanies100",
+        with: [partyId: resultRelCompany.companyPartyId]
+    result.company = resultCompany.company
     return result
 }
