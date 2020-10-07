@@ -26,7 +26,7 @@ under the License.
 
     <service name="getCompanies100" engine="groovy" export="true"
         location="component://growerp/src/100/PartyServices100.groovy"
-        invoke="getCompanies action="GET" auth="false"">
+        invoke="getCompanies" action="GET" auth="false">
         <description>
             Get companies registered within the system or when partyId is provided a single company.
         </description>
