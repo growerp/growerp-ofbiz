@@ -30,11 +30,41 @@ under the License.
         <description>
             Get companies registered within the system or when partyId is provided a single company.
         </description>
-        <attribute name="partyId" type="String" mode="IN" optional="true"/><!-- if provided single company only -->
+        <attribute name="companyPartyId" type="String" mode="IN" optional="true"/><!-- if provided single company only -->
         <attribute name="classificationId" type="String" mode="IN" optional="true"/>
         <attribute name="companies" type="List" mode="OUT" optional="true"/>
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
     </service> 
+
+    <service name="updateCompany100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="updateCompany" action="POST">
+        <description>
+            Update company owned by company admin.
+        </description>
+        <attribute name="base64" type="String" mode="IN" optional="true"/>
+        <attribute name="company" type="Map" mode="INOUT" optional="true"/>
+    </service>
+
+    <service name="checkCompany100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="checkCompany" action="GET" auth="false">
+        <description>
+            Check if company still available.
+        </description>
+        <attribute name="ok" type="String" mode="OUT" optional="false"/>
+    </service>
+
+    <service name="createImages100" engine="groovy"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="createImages" auth="true">
+        <description>
+            Create a set of three images: full(original), medium, small
+        </description>
+        <attribute name="base64" type="String" mode="IN" optional="false"/>
+        <attribute name="type" type="String" mode="IN" optional="false"/>
+        <attribute name="id" type="String" mode="IN" optional="false"/>
+    </service>
     
     <service name="registerUserAndCompany100" engine="groovy" export="true" 
         action="POST" auth="false"
@@ -54,12 +84,31 @@ under the License.
         <attribute name="lastName" type="String" mode="IN"/>
         <attribute name="username" type="String" mode="IN"/>
         <attribute name="userGroupId" type="String" mode="IN"/>
-        <attribute name="password" type="String" mode="IN"/>
-        <attribute name="passwordVerify" type="String" mode="IN"/>
 
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
+
+    <service name="loadDefaultData100" engine="groovy"
+        location="component://growerp/src/100/PartyServices100.groovy"
+                invoke="loadDefaultdate">
+        <attribute name="currencyId" type="String" mode="IN"/>
+        <attribute name="classificationId" type="String" mode="IN"/>
+        <attribute name="environment" type="String" mode="IN"/>
+        <attribute name="transData" type="List" mode="IN"/>
+    </service>
+
+    <service name="updatePassword100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+            invoke="updatePassword" action="GET" auth="true">
+        <attribute name="newPassword" type="String" mode="IN" optional="false"/>
+    </service>
+
+    <service name="resetPassword100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+            invoke="resetPassword" action="GET" auth="true">
+        <description>Will send email with with temp password</description>
+    </service>
 
     <service name="getAuthenticate100" engine="groovy" export="true" action="GET"
             location="component://growerp/src/100/PartyServices100.groovy" 
@@ -89,8 +138,36 @@ under the License.
         <description>
             get related company of a user.
         </description>
-        <attribute name="userPartyId" type="String" mode="IN" optional="true"/>
         <attribute name="companyPartyId" type="String" mode="OUT" optional="true"/>
     </service>
     
+    <service name="createUser100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="createUser" action="POST">
+        <description>
+            Update User by himself or company admin.
+        </description>
+        <attribute name="base64" type="String" mode="IN" optional="true"/>
+        <attribute name="companyPartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="user" type="Map" mode="INOUT" optional="false"/>
+    </service>
+
+    <service name="updateUser100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="updateUser" action="POST">
+        <description>
+            Update User by himself or company admin.
+        </description>
+        <attribute name="base64" type="String" mode="IN" optional="true"/>
+        <attribute name="user" type="Map" mode="INOUT" optional="false"/>
+    </service>
+
+    <service name="deleteUser100" engine="groovy" export="true"
+        location="component://growerp/src/100/PartyServices100.groovy"
+        invoke="deleteUser" action="POST">
+        <description>
+            Update User by himself or company admin.
+        </description>
+        <attribute name="userPartyId" type="String" mode="IN" optional="false"/>
+    </service>
 </services>

@@ -6,24 +6,37 @@ import org.apache.ofbiz.entity.GenericValue
 import org.apache.ofbiz.entity.util.EntityUtil
 import org.apache.ofbiz.service.ModelService
 import org.apache.ofbiz.service.ServiceUtil
+import org.apache.ofbiz.common.image.ImageTransform
+import java.awt.image.*
+import java.awt.Image
 
 def getCompanies() {
     Map result = success()
 
-    if (!parameters.partyId) {
+    if (!parameters.companyPartyId) {
         companyList = from('CompanyPreferenceAndClassification')
             .where([partyClassificationGroupId:parameters.classificationId])
             .queryList()
     } else {
         companyList = from('CompanyPreferenceAndClassification')
-            .where([partyId:parameters.partyId])
+            .where([partyId:parameters.companyPartyId])
             .queryList()
     }
-    if (!parameters.partyId) result.companies = [];
+    if (!parameters.companyPartyId)
+        result.companies = [];
+
     companyList.each {
-        resultEmail = runService('getPartyEmail', [partyId: it.partyId,
-                                contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
+        resultEmail = runService('getPartyEmail',
+            [partyId: it.partyId,
+             contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
         resultUsers = runService('getUsers100', [companyPartyId: it.partyId])
+        resultContent = from('PartyContent')
+            .where([partyId: it.partyId, partyContentTypeId: "GROWERP-SMALL"])
+            .queryOne()
+        Map resultData
+        if (resultContent)
+            resultData = runService('getContentAndDataResource',
+                [contentId: resultContent.contentId])
         company = [ // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
             partyId: it.partyId,
             name: it.organizationName,
@@ -31,77 +44,70 @@ def getCompanies() {
             classificationDescr: it.description,
             email: resultEmail.emailAddress,
             currencyId: it.baseCurrencyUomId,
-            image: null,
+            image: resultData? resultData.resultData.dataResource.imageDataResource.imageData : null,
             employees: resultUsers.users
         ]
-        if (!parameters.partyId) result.companies.add(company)
+        if (!parameters.companyPartyId) result.companies.add(company)
         else result.company = company
     }
-    logInfo("=Get companies:==${result.companies? result.companies.size():''} ${result.company?1:''} found")
     return result
+}
+
+def checkCompany() {
+    
+}
+
+def updateCompany() {
+    
 }
 
 def registerUserAndCompany() {
     Map result = success()
     parameters.userLogin = from("UserLogin")
-        .where("userLoginId", "system").queryOne();
+        .where([userLoginId: "system"]).queryOne();
 
     if (!parameters.companyPartyId) {
-        companyResult = run service: 'createPartyGroup',
-            with: [ groupName: parameters.companyName]
-        run service: 'createPartyRole',
-            with: [ partyId: companyResult.partyId,
-                    roleTypeId: 'INTERNAL_ORGANIZATIO']
-        run service: 'createPartyClassification',
-            with: [ partyId: companyResult.partyId,
-                    partyClassificationGroupId: parameters.classificationId,
-                    fromDate: UtilDateTime.nowTimestamp()]
-        run service: 'createPartyEmailAddress',
-            with: [ partyId: companyResult.partyId,
-                    emailAddress: parameters.companyEmail,
-                    contactMechPurposeTypeId: 'PRIMARY_EMAIL']
-        run service: 'createPartyAcctgPreference',
-            with: [ partyId: companyResult.partyId, 
-                    baseCurrencyUomId: parameters.currencyId]
-        psResult = run service: 'createProductStore',
-            with: [ payToPartyId: companyResult.partyId,
-                    storeName: 'Store of ' + parameters.companyName]
-        pcResult = run service: 'createProdCatalog',
-            with: [ catalogName: 'Catalog for company' + parameters.companyName,
-                    payToPartyId: companyResult.partyId]
-        run service: 'createProductStoreCatalog',
-            with: [ prodCatalogId: pcResult.prodCatalogId,
-                    productStoreId: psResult.productStoreId, 
-                    fromDate: UtilDateTime.nowTimestamp()]
+        companyResult = runService('createPartyGroup',
+            [ groupName: parameters.companyName])
+        runService('createPartyRole',
+            [ partyId: companyResult.partyId,
+              roleTypeId: 'INTERNAL_ORGANIZATIO'])
+        runService('createPartyClassification',
+            [ partyId: companyResult.partyId,
+              partyClassificationGroupId: parameters.classificationId,
+              fromDate: UtilDateTime.nowTimestamp()])
+        runService('createPartyEmailAddress',
+            [ partyId: companyResult.partyId,
+              emailAddress: parameters.companyEmail,
+              contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
+        runService('createPartyAcctgPreference',
+            [ partyId: companyResult.partyId,
+              baseCurrencyUomId: parameters.currencyId])
+        psResult = runService('createProductStore',
+            [ payToPartyId: companyResult.partyId,
+              storeName: 'Store of ' + parameters.companyName])
+        pcResult = runService('createProdCatalog',
+            [ catalogName: 'Catalog for company' + parameters.companyName,
+              payToPartyId: companyResult.partyId])
+        runService('createProductStoreCatalog',
+            [ prodCatalogId: pcResult.prodCatalogId,
+              productStoreId: psResult.productStoreId,
+              fromDate: UtilDateTime.nowTimestamp()])
     }
-    personResult = run service: 'createPerson',
-        with: [ firstName: parameters.firstName,
-                lastName: parameters.lastName]
-    run service: 'createPartyEmailAddress',
-        with: [ partyId: personResult.partyId,
-                emailAddress: parameters.emailAddress,
-                contactMechPurposeTypeId: 'PRIMARY_EMAIL']
-    loginResult = run service: 'createUserLogin',
-        with: [ partyId: personResult.partyId,
-                userLoginId: parameters.username,
-                currentPassword: parameters.password,
-                currentPasswordVerify: parameters.passwordVerify]
-    if (ServiceUtil.isError(loginResult)) return loginResult
-    run service: 'addUserLoginToSecurityGroup',
-        with: [ userLoginId: parameters.username,
-                groupId: parameters.userGroupId,
-                fromDate: UtilDateTime.nowTimestamp()]
-    run service: 'createPartyRelationship',
-        with: [ partyIdTo: companyResult.partyId,
-                roleTypeIdTo: "INTERNAL_ORGANIZATIO",
-                partyIdFrom: personResult.partyId,
-                fromDate: UtilDateTime.nowTimestamp()]
-    resultCompany = run service: "getCompanies100",
-        with: [partyId: companyResult.partyId]
-    result.company = resultCompany.company
-    resultUser = run service: "getUsers100",
-        with: [userPartyId: personResult.partyId]
+    user = [firstName: parameters.firstName,
+            lastName: parameters.lastName,
+            userGroupId: 'GROWERP_M_ADMIN',
+            email: parameters.emailAddress,
+            username: parameters.username
+            ]
+    resultUser = runService('createUser100',
+        [ user: user,
+          companyPartyId: companyResult.partyId])
     result.user = resultUser.user
+    resultCompany = runService("getCompanies100",
+        [ partyId: companyResult.partyId])
+    result.company = resultCompany.company
+
     return result
 }
 
@@ -119,8 +125,9 @@ def getUsers() {
     } 
     if (!parameters.userPartyId) result.users = [];
     userList.each {
-        resultEmail = runService('getPartyEmail', [partyId: it.personPartyId,
-                                contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
+        resultEmail = runService('getPartyEmail',
+            [ partyId: it.personPartyId,
+              contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
         // see model in https://github.com/growerp/growerp/blob/master/lib/models/user.dart
         user = [ 
             partyId: it.personPartyId,
@@ -138,16 +145,145 @@ def getUsers() {
     return result
 }
 
+def loadDefaultData() {
+    
+}
+def createUser() {
+    Map result = success()
+    String password = 'qqqqqq9!'
+    personResult = runService('createPerson',
+        [ firstName: parameters.user.firstName,
+          lastName: parameters.user.lastName])
+    runService('createPartyEmailAddress',
+        [ partyId: personResult.partyId,
+          emailAddress: parameters.user.email,
+          contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
+    loginResult = runService('createUserLogin',
+        [ partyId: personResult.partyId,
+          userLoginId: parameters.user.username,
+          currentPassword: password,
+          currentPasswordVerify: password])
+    if (ServiceUtil.isError(loginResult)) return loginResult
+    runService('addUserLoginToSecurityGroup',
+        [ userLoginId: parameters.user.username,
+          groupId: parameters.user.userGroupId,
+          fromDate: UtilDateTime.nowTimestamp()])
+    if (parameters.user.userGroupId in ['GROWERP_M_ADMIN', 'GROWERP_M_EMPLOYEE']) {
+        if (!parameters.companyPartyId) {
+            result = runService('getRelatedCompany100'
+                [parameters.companyPartyId = result.companyPartyid])
+        }
+        runService("createPartyRelationship",
+            [ partyIdFrom: parameters.companyPartyId,
+              roleTypeIdFrom: "INTERNAL_ORGANIZATIO",
+              partyIdTo: personResult.partyId,
+              roleTypeIdTo: "_NA_",
+              fromDate: UtilDateTime.nowTimestamp()])
+    }
+    if (parameters.base64) runService("createImages100",
+        [ base64: parameters.base64,
+          type: 'user',
+          id: personResult.partyId])
+
+    resultUser = runService("getUsers100",
+        [userPartyId: personResult.partyId])
+    result.user = resultUser.user
+    return result
+}
+def updateUser() {
+    Map result = success()
+
+    if (parameters.base64) runService("createImages",
+        [ base64: parameters.base64,
+          type: 'user',
+          id: parameters.user.partyId])
+
+}
+def deleteUser() {
+    Map result = success()
+    
+}
+
+def updatePassword() {
+    Map result = success()
+        
+}
+
+def resetPassword() {
+    Map result = success()
+        
+}
+
 def getAuthenticate() {
     Map result = success()
-    resultUser = run service: "getUsers100",
-        with: [userPartyId: parameters.userLogin.partyId]
+    resultUser = runService("getUsers100", // get single user info
+        [userPartyId: parameters.userLogin.partyId])
     result.user = resultUser.user
-
-    resultRelCompany = run service: 'getRelatedCompany100'
-
-    resultCompany = run service: "getCompanies100",
-        with: [partyId: resultRelCompany.companyPartyId]
+    resultRelCompany = runService("getRelatedCompany100", [:])
+    resultCompany = runService("getCompanies100", // get companyInfo
+        [ companyPartyId: resultRelCompany.companyPartyId])
     result.company = resultCompany.company
+    return result
+}
+
+def createImages() {
+    Map result = success()
+    byte[] imageBytes = Base64.decodeBase64(parameters.base64);
+    int fileSize = imageBytes.size()
+    drResult = runService("createImageDataResource",
+        [imagedata: imageBytes])
+    contentResultLarge = runService("createContent",
+        [dataResourceId: drResult.dataResourceId])
+
+    // byte[] to buffered image
+    fileStreamLarge = imageBytes.openStream()
+    BufferedImage img = ImageIO.read(fileStreamLarge);
+
+    inst scaleFator = 5000 / fileSize
+    // resize image
+    Image newImg = bufImg.getScaledInstance((int) (img.getWidth() * scaleFactor),
+        (int) (img.getHeight() * scaleFactor), Image.SCALE_SMOOTH);
+    BufferedImage bufNewImg = ImageTransform.toBufferedImage(newImg, bufImgType);
+    // bufferedImage to byte[]
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ImageIO.write( bufNewImg, "jpg", baos );
+    baos.flush();
+    imageBytes = baos.toByteArray();
+    baos.close();
+    drResult = run service: "createImageDataResource",
+        with: [imagedata: imageBytes]
+    contentResultMedium = run service: "createContent",
+        with: [dataResourceId: drResult.dataResourceId]
+
+    int scaleFator = 2000 / fileSize
+    // resize image
+    newImg = bufImg.getScaledInstance((int) (img.getWidth() * scaleFactor),
+        (int) (img.getHeight() * scaleFactor), Image.SCALE_SMOOTH);
+    bufNewImg = ImageTransform.toBufferedImage(newImg, bufImgType);
+    // bufferedImage to byte[]
+    baos = new ByteArrayOutputStream();
+    ImageIO.write( bufNewImg, "jpg", baos );
+    baos.flush();
+    imageBytes = baos.toByteArray();
+    baos.close();
+    drResult = runService("createImageDataResource",
+        [imagedata: imageBytes])
+    contentResultSmall = runService("createContent",
+        [dataResourceId: drResult.dataResourceId])
+
+    if (parameters.type in ['user', 'company']) {
+        result = runService("createPartyContent",
+            [ partyId: parameters.id,
+              contentId: contentResult.contentIdLarge,
+              partyContentTypeId: 'GROWERP-LARGE'])
+        result = runService("createPartyContent",
+            [ partyId: parameters.id,
+              contentId: contentResult.contentIdMedium,
+              partyContentTypeId: 'GROWERP-MEDIUM'])
+        result = runService("createPartyContent",
+            [ partyId: parameters.id,
+              contentId: contentResult.contentIdSmall,
+              partyContentTypeId: 'GROWERP-SMALL'])
+    }
     return result
 }

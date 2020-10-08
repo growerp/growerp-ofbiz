@@ -29,4 +29,8 @@ under the License.
     <PartyClassificationGroup partyClassificationGroupId="AppHotel" partyClassificationTypeId="PcltMobileApp" description="App for Hotel, Bed &amp; Breakfeast"/>
     <PartyClassificationGroup partyClassificationGroupId="AppRealtor" partyClassificationTypeId="PcltMobileApp" description="App for Realtor/property management"/>
 
+    <PartyContentType description="Large/original size Image" partyContentTypeId="GROWERP-LARGE"/>
+    <PartyContentType description="Medium size Image" partyContentTypeId="GROWERP-MEDIUM"/>
+    <PartyContentType description="Small size Image" partyContentTypeId="GROWERP-SMALL"/>
+
 </entity-engine-xml>
