@@ -7,15 +7,16 @@ import org.apache.ofbiz.entity.util.EntityUtil
 import org.apache.ofbiz.service.ModelService
 import org.apache.ofbiz.service.ServiceUtil
 import org.apache.ofbiz.common.image.ImageTransform
-import java.awt.image.*
-import java.awt.Image
 
 def getRelatedCompany() { // from is company, to is employee
     Map result = success()
-    relations = from('PartyRelationship')
-            .where([partyIdTo: parameters.userLogin.partyId])
-            .queryList()
-    if (!relations) logError("No related company found for partyId: ${userLogin.partyId}")
-    result.companyPartyId = relations[0].partyIdFrom
-    return result 
+    if (!parameters.userPartyId) // use login party when not provided
+        parameters.userPartyId = parameters.userLogin.partyId
+    rel = from('PartyRelationship')
+        .where([ roleTypeIdFrom: 'INTERNAL_ORGANIZATIO',
+                roleTypeIdTo: '_NA_',
+                partyIdTo: parameters.userPartyId])
+        .queryList()
+    result.companyPartyId = rel[0]?.partyIdFrom
+    return result
 }

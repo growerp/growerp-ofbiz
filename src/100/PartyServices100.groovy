@@ -9,56 +9,105 @@ import org.apache.ofbiz.service.ServiceUtil
 import org.apache.ofbiz.common.image.ImageTransform
 import java.awt.image.*
 import java.awt.Image
+import java.util.Base64
+import javax.imageio.ImageIO
+import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import javax.imageio.ImageIO
+import org.apache.commons.lang.RandomStringUtils
+
+
+def boolean isAdmin(userLogin) {
+    if(userLogin.userLoginId == 'system' || from("UserLoginSecurityGroup")
+        .where(userLoginId: userLogin.userLoginId,
+            groupId: "GROWERP_M_ADMIN").queryList())
+    return true
+    else false
+}
 
 def getCompanies() {
     Map result = success()
-
-    if (!parameters.companyPartyId) {
+    List companyList
+    String imageSize
+    if (parameters.companyPartyId) {
         companyList = from('CompanyPreferenceAndClassification')
-            .where([partyClassificationGroupId:parameters.classificationId])
+            .where([companyPartyId: parameters.companyPartyId])
             .queryList()
-    } else {
+        imageSize = "GROWERP-MEDIUM"
+    } else if (parameters.classificationId) {
+        result.companies = []
         companyList = from('CompanyPreferenceAndClassification')
-            .where([partyId:parameters.companyPartyId])
+            .where([classificationId: parameters.classificationId])
             .queryList()
+        imageSize = "GROWERP-SMALL"
     }
-    if (!parameters.companyPartyId)
-        result.companies = [];
 
     companyList.each {
-        resultEmail = runService('getPartyEmail',
-            [partyId: it.partyId,
-             contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
-        resultUsers = runService('getUsers100', [companyPartyId: it.partyId])
-        resultContent = from('PartyContent')
-            .where([partyId: it.partyId, partyContentTypeId: "GROWERP-SMALL"])
-            .queryOne()
+        email = runService('getPartyEmail',
+            [   partyId: it.companyPartyId,
+                contactMechPurposeTypeId: 'PRIMARY_EMAIL']).emailAddress
+        users = runService('getUsers100', [:])?.users
+        contents = from('PartyContent')
+            .where([partyId: it.companyPartyId, partyContentTypeId: imageSize])
+            .queryList()
         Map resultData
-        if (resultContent)
+        if (contents)
             resultData = runService('getContentAndDataResource',
-                [contentId: resultContent.contentId])
+                [contentId: contents[0].contentId])
         company = [ // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
-            partyId: it.partyId,
+            partyId: it.companyPartyId,
             name: it.organizationName,
-            classificationId: it.partyClassificationGroupId,
+            classificationId: it.classificationId,
             classificationDescr: it.description,
-            email: resultEmail.emailAddress,
+            email: email,
             currencyId: it.baseCurrencyUomId,
             image: resultData? resultData.resultData.dataResource.imageDataResource.imageData : null,
-            employees: resultUsers.users
+            employees: users
         ]
-        if (!parameters.companyPartyId) result.companies.add(company)
-        else result.company = company
+        if (parameters.companyPartyId) result.company = company
+        else if (parameters.classificationId) result.companies.add(company)
     }
     return result
 }
 
 def checkCompany() {
-    
+    Map result = success()
+    parties = from(CompanyPreferenceAndClassification)
+        .where(companyPartyId: parameters.companyPartyId)
+        .queryList()
+    if(partyList) result.ok = 'ok'
+    return result
 }
 
-def updateCompany() {
-    
+def updateCompany() { // can only update by admin own company
+    Map result = success()
+    if (isAdmin(userLogin) == false) return error("Not authorized!")
+    companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+    oldCompany = runService("getCompanies100",
+        [companyPartyId: companyPartyId]).company
+    if (parameters.company.name != oldCompany.name) {
+        runService('updatePartyGroup', [partyId: companyPartyId,
+            groupName: parameters.company.name])}
+    cm = from("PartyContactMechPurpose")
+        .where(partyId: companyPartyId,
+                contactMechPurposeTypeId: 'PRIMARY_EMAIL').queryList()
+    if (parameters.company.email != oldCompany.email) {
+        runService('createUpdatePartyEmailAddress',
+            [ partyId: companyPartyId,
+              contactMechId: cm[0].contactMechId,
+              emailAddress: parameters.company.email,
+              contactMechPurposeTypeId: 'PRIMARY_EMAIL'])}
+    if (parameters.company.currencyId != oldCompany.currencyId) {
+        accountingPref = select("partyId","currencyUomId")
+            .from("PartyAccountingPreference")
+            .where(partyId: companyPartyId).queryOne()
+        accountingPref.currencyUomId = parameters.company.currencyId
+        accountingPref.update() }
+    result.company = runService("getCompanies100",
+        [companyPartyId: companyPartyId]).company
+    return result    
 }
 
 def registerUserAndCompany() {
@@ -67,77 +116,88 @@ def registerUserAndCompany() {
         .where([userLoginId: "system"]).queryOne();
 
     if (!parameters.companyPartyId) {
-        companyResult = runService('createPartyGroup',
-            [ groupName: parameters.companyName])
+        companyPartyId = runService('createPartyGroup',
+            [ groupName: parameters.companyName]).partyId
         runService('createPartyRole',
-            [ partyId: companyResult.partyId,
+            [ partyId: companyPartyId,
               roleTypeId: 'INTERNAL_ORGANIZATIO'])
         runService('createPartyClassification',
-            [ partyId: companyResult.partyId,
+            [ partyId: companyPartyId,
               partyClassificationGroupId: parameters.classificationId,
               fromDate: UtilDateTime.nowTimestamp()])
         runService('createPartyEmailAddress',
-            [ partyId: companyResult.partyId,
+            [ partyId: companyPartyId,
               emailAddress: parameters.companyEmail,
               contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
         runService('createPartyAcctgPreference',
-            [ partyId: companyResult.partyId,
+            [ partyId: companyPartyId,
               baseCurrencyUomId: parameters.currencyId])
-        psResult = runService('createProductStore',
-            [ payToPartyId: companyResult.partyId,
-              storeName: 'Store of ' + parameters.companyName])
-        pcResult = runService('createProdCatalog',
+        productStoreId = runService('createProductStore',
+            [ payToPartyId: companyPartyId,
+              storeName: 'Store of ' + parameters.companyName]).productStoreId
+        prodCatalogId = runService('createProdCatalog',
             [ catalogName: 'Catalog for company' + parameters.companyName,
-              payToPartyId: companyResult.partyId])
+              payToPartyId: companyPartyId]).prodCatalogId
         runService('createProductStoreCatalog',
-            [ prodCatalogId: pcResult.prodCatalogId,
-              productStoreId: psResult.productStoreId,
+            [ prodCatalogId: prodCatalogId,
+              productStoreId: productStoreId,
               fromDate: UtilDateTime.nowTimestamp()])
     }
     user = [firstName: parameters.firstName,
             lastName: parameters.lastName,
             userGroupId: 'GROWERP_M_ADMIN',
             email: parameters.emailAddress,
-            username: parameters.username
-            ]
-    resultUser = runService('createUser100',
-        [ user: user,
-          companyPartyId: companyResult.partyId])
-    result.user = resultUser.user
+            username: parameters.username]
+    result.user = runService('createUser100',
+        [ user: user, companyPartyId: companyPartyId])?.user
     resultCompany = runService("getCompanies100",
-        [ partyId: companyResult.partyId])
-    result.company = resultCompany.company
-
+        [ partyId: companyPartyId]).company
     return result
 }
 
 def getUsers() {
     Map result = success()
-
-    if (parameters.companyPartyId) {
-        userList = from('CompanyPersonAndLoginGroup') // by company
-            .where([companyPartyId: parameters.companyPartyId])
-            .queryList()
-    } else if (parameters.userPartyId){ // specific user
+    List userList
+    if (parameters.userPartyId == userLogin?.partyId) { //users own data
         userList = from('PersonAndLoginGroup')
-            .where([personPartyId: parameters.userPartyId])
+            .where([userPartyId: parameters.userPartyId])
             .queryList()
-    } 
-    if (!parameters.userPartyId) result.users = [];
+    } else if (isAdmin(parameters.userLogin)) { //get all users from own company
+        companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+        userList = from('CompanyPersonAndLoginGroup') // by company
+            .where([companyPartyId: companyPartyId])
+            .queryList()            
+    }
+    String imageSize
+    if (!parameters.userPartyId) {
+        result.users = [];
+        imageSize = "GROWERP-SMALL"
+    } else {
+        imageSize = "GROWERP-MEDIUM"
+    }
+
     userList.each {
+        contents = from('PartyContent')
+            .where([partyId: it.userPartyId, partyContentTypeId: imageSize])
+            .queryList()
+        Map resultData
+        if (contents)
+            resultData = runService('getContentAndDataResource',
+                [contentId: contents[0].contentId])
         resultEmail = runService('getPartyEmail',
-            [ partyId: it.personPartyId,
+            [ partyId: it.userPartyId,
               contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
         // see model in https://github.com/growerp/growerp/blob/master/lib/models/user.dart
         user = [ 
-            partyId: it.personPartyId,
+            partyId: it.userPartyId,
             firstName: it.firstName,
             lastName: it.lastName,
             email: resultEmail.emailAddress,
             name: it.userLoginId,
             userGroupId: it.groupId,
             groupDescription: it.groupDescription,
-            image: null,
+            image: resultData?
+                resultData.resultData.dataResource.imageDataResource.imageData : null,
         ]
         if (!parameters.userPartyId) result.users.add(user)
         else result.user = user
@@ -150,16 +210,20 @@ def loadDefaultData() {
 }
 def createUser() {
     Map result = success()
+    result.user = [:]
+    // only admin can add employees in his own company
+    loginUserCompanyId = runService("getRelatedCompany100", [:]).companyPartyId
+    //String password = RandomStringUtils.randomAlphanumeric(6); 
     String password = 'qqqqqq9!'
-    personResult = runService('createPerson',
+    userPartyId = runService('createPerson',
         [ firstName: parameters.user.firstName,
-          lastName: parameters.user.lastName])
+          lastName: parameters.user.lastName]).partyId
     runService('createPartyEmailAddress',
-        [ partyId: personResult.partyId,
+        [ partyId: userPartyId,
           emailAddress: parameters.user.email,
           contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
     loginResult = runService('createUserLogin',
-        [ partyId: personResult.partyId,
+        [ partyId: userPartyId,
           userLoginId: parameters.user.username,
           currentPassword: password,
           currentPasswordVerify: password])
@@ -168,36 +232,88 @@ def createUser() {
         [ userLoginId: parameters.user.username,
           groupId: parameters.user.userGroupId,
           fromDate: UtilDateTime.nowTimestamp()])
+    runService('addUserLoginToSecurityGroup', // do not use OFBIZ security system
+        [ userLoginId: parameters.user.username,
+          groupId: 'SUPER',
+          fromDate: UtilDateTime.nowTimestamp()])
     if (parameters.user.userGroupId in ['GROWERP_M_ADMIN', 'GROWERP_M_EMPLOYEE']) {
         if (!parameters.companyPartyId) {
-            result = runService('getRelatedCompany100'
-                [parameters.companyPartyId = result.companyPartyid])
+            parameters.companyPartyId = 
+                runService('getRelatedCompany100',[:]).companyPartyId
         }
         runService("createPartyRelationship",
             [ partyIdFrom: parameters.companyPartyId,
               roleTypeIdFrom: "INTERNAL_ORGANIZATIO",
-              partyIdTo: personResult.partyId,
+              partyIdTo: userPartyId,
               roleTypeIdTo: "_NA_",
               fromDate: UtilDateTime.nowTimestamp()])
     }
     if (parameters.base64) runService("createImages100",
         [ base64: parameters.base64,
           type: 'user',
-          id: personResult.partyId])
+          id: userPartyId])
 
-    resultUser = runService("getUsers100",
-        [userPartyId: personResult.partyId])
-    result.user = resultUser.user
+    result.user = runService("getUsers100", [userPartyId: userPartyId])?.user
     return result
 }
 def updateUser() {
     Map result = success()
 
-    if (parameters.base64) runService("createImages",
-        [ base64: parameters.base64,
+    if (parameters.user.partyId != userLogin.partyId) { // own data
+        companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+        loginCompanyPartyId = runService("getRelatedCompany100", 
+            [userpartyid: parameters.user.partyId]).companyPartyId
+        if (companyPartyId != loginCompanyPartyId) { // own company
+            if (!isAdmin(userLogin)) { // only admin can
+                return error("No access to user ${parameters.user.partyId}")
+            }
+        }
+    }
+
+    oldUser = runService("getUsers100",[userPartyId: parameters.user.partyId]).user
+    if (oldUser.lastName != parameters.user.lastName || 
+            oldUser.firstName != parameters.user.firstName) {
+        runService('updatePerson',
+            [   partyId: parameters.user.partyId,
+                firstName: parameters.user.firstName,
+                lastName: parameters.user.lastName])
+    }
+
+    if (oldUser.email != parameters.user.email) { 
+        cm = from("PartyContactMechPurpose")
+            .where(partyId: parameters.user.partyId,
+                    contactMechPurposeTypeId: 'PRIMARY_EMAIL').queryList()
+        runService('createUpdatePartyEmailAddress',
+            [   partyId: parameters.user.partyId,
+                contactMechId: cm[0].contactMechId,
+                emailAddress: parameters.user.email,
+                contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
+    }
+    if (oldUser.name != parameters.user.name) {
+        loginResult = runService('updateUserLogin',
+            [ userLoginId: parameters.user.username])
+        if (ServiceUtil.isError(loginResult)) return loginResult
+    }
+    if (oldUser.userGroupId != parameters.user.userGroupid) {
+        sec = from("UserLoginSecurityGroup")
+                .where(userLoginId: parameters.user.name,
+                        groupId: oldUser.userGroupId).queryList()
+        runService('removeUserLoginToSecurityGroup',
+            [ userLoginId: parameters.user.name,
+            fromDate: sec[0].fromDate,
+            groupId: oldUser.userGroupId])
+        runService('addUserLoginToSecurityGroup',
+            [ userLoginId: parameters.user.name,
+            groupId: parameters.user.userGroupId,
+            fromDate: UtilDateTime.nowTimestamp()])
+    }
+    if (parameters.user.image) runService("createImages100",
+        [ base64: parameters.user.image,
           type: 'user',
           id: parameters.user.partyId])
-
+    result.user = runService('getUsers100',
+        [userPartyId: parameters.user.partyId])?.user
+    return result
 }
 def deleteUser() {
     Map result = success()
@@ -216,46 +332,50 @@ def resetPassword() {
 
 def getAuthenticate() {
     Map result = success()
-    resultUser = runService("getUsers100", // get single user info
-        [userPartyId: parameters.userLogin.partyId])
-    result.user = resultUser.user
-    resultRelCompany = runService("getRelatedCompany100", [:])
-    resultCompany = runService("getCompanies100", // get companyInfo
-        [ companyPartyId: resultRelCompany.companyPartyId])
-    result.company = resultCompany.company
+    result.user = runService("getUsers100", // get single user info
+        [userPartyId: parameters.userLogin.partyId])?.user
+    companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+    result.company = runService("getCompanies100", // get companyInfo
+        [ companyPartyId: companyPartyId])?.company
     return result
 }
 
 def createImages() {
     Map result = success()
-    byte[] imageBytes = Base64.decodeBase64(parameters.base64);
+    byte[] imageBytes = Base64.getMimeDecoder().decode(parameters.base64);
     int fileSize = imageBytes.size()
+    logInfo("======file size: ${fileSize}")
+    drResult = runService("createDataResource", [:])
     drResult = runService("createImageDataResource",
-        [imagedata: imageBytes])
+        [imageData: imageBytes, dataResourceId: drResult.dataResourceId])
     contentResultLarge = runService("createContent",
         [dataResourceId: drResult.dataResourceId])
 
     // byte[] to buffered image
-    fileStreamLarge = imageBytes.openStream()
-    BufferedImage img = ImageIO.read(fileStreamLarge);
+    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
+    logInfo("===end read")
 
-    inst scaleFator = 5000 / fileSize
+    inst scaleFactor = 5000 / fileSize
     // resize image
     Image newImg = bufImg.getScaledInstance((int) (img.getWidth() * scaleFactor),
         (int) (img.getHeight() * scaleFactor), Image.SCALE_SMOOTH);
     BufferedImage bufNewImg = ImageTransform.toBufferedImage(newImg, bufImgType);
-    // bufferedImage to byte[]
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+    // bufferedImage back to byte[]
+    baos = new ByteArrayOutputStream();
     ImageIO.write( bufNewImg, "jpg", baos );
     baos.flush();
     imageBytes = baos.toByteArray();
     baos.close();
-    drResult = run service: "createImageDataResource",
-        with: [imagedata: imageBytes]
-    contentResultMedium = run service: "createContent",
-        with: [dataResourceId: drResult.dataResourceId]
+    
+    drResult = runService("createDataResource", [:])
+    drResult = runService("createImageDataResource",
+        [imageData: imageBytes, dataResourceId: drResult.dataResourceId])
+    contentResultMedium = runService("createContent",
+        [dataResourceId: drResult.dataResourceId])
 
-    int scaleFator = 2000 / fileSize
+    int scaleFactor = 2000 / fileSize
+
     // resize image
     newImg = bufImg.getScaledInstance((int) (img.getWidth() * scaleFactor),
         (int) (img.getHeight() * scaleFactor), Image.SCALE_SMOOTH);
@@ -266,23 +386,24 @@ def createImages() {
     baos.flush();
     imageBytes = baos.toByteArray();
     baos.close();
+    drResult = runService("createDataResource", [:])
     drResult = runService("createImageDataResource",
-        [imagedata: imageBytes])
+        [imageData: imageBytes, dataResourceId: drResult.dataResourceId])
     contentResultSmall = runService("createContent",
         [dataResourceId: drResult.dataResourceId])
 
     if (parameters.type in ['user', 'company']) {
-        result = runService("createPartyContent",
+        runService("createPartyContent",
             [ partyId: parameters.id,
-              contentId: contentResult.contentIdLarge,
+              contentId: contentResultLarge.contentId,
               partyContentTypeId: 'GROWERP-LARGE'])
-        result = runService("createPartyContent",
+        runService("createPartyContent",
             [ partyId: parameters.id,
-              contentId: contentResult.contentIdMedium,
+              contentId: contentResultMedium.contentId,
               partyContentTypeId: 'GROWERP-MEDIUM'])
-        result = runService("createPartyContent",
+        runService("createPartyContent",
             [ partyId: parameters.id,
-              contentId: contentResult.contentIdSmall,
+              contentId: contentResultSmall.contentId,
               partyContentTypeId: 'GROWERP-SMALL'])
     }
     return result

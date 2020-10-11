@@ -34,11 +34,11 @@ under the License.
         <member-entity entity-alias="PP" entity-name="PartyAcctgPreference"/>
         <member-entity entity-alias="PARTYCLASS" entity-name="PartyClassification"/>
         <member-entity entity-alias="PCG" entity-name="PartyClassificationGroup"/>
-        <alias name="partyId" entity-alias="PARTY"/>
+        <alias name="companyPartyId" entity-alias="PARTY" field="partyId"/>
         <alias name="statusId" entity-alias="PARTY"/>
         <alias name="organizationName" entity-alias="ORG" field="groupName"/>
         <alias name="baseCurrencyUomId" entity-alias="PP"/>
-        <alias name="partyClassificationGroupId" entity-alias="PCG"/>
+        <alias name="classificationId" entity-alias="PCG" field="partyClassificationGroupId"/>
         <alias name="description" entity-alias="PCG"/>
         <view-link entity-alias="PARTY" rel-entity-alias="ORG">
             <key-map field-name="partyId"/></view-link>
@@ -69,8 +69,8 @@ under the License.
         <alias entity-alias="PR" name="companyRoleTypeId" field="roleTypeIdFrom"/>
         <alias entity-alias="PR" name="fromDate"/><!-- date registered in the system -->
         <alias entity-alias="PR" name="thruDate"/>
-        <alias entity-alias="PTYPERSON" name="personPartyId" field="partyId"/>
-        <alias entity-alias="PTYPERSON" name="personStatusId" field="statusId"/>
+        <alias entity-alias="PTYPERSON" name="userPartyId" field="partyId"/>
+        <alias entity-alias="PTYPERSON" name="userStatusId" field="statusId"/>
         <alias entity-alias="PERSON" name="firstName"/>
         <alias entity-alias="PERSON" name="lastName"/>
         <alias entity-alias="PERSON" name="externalId" field="otherLocal"/>
@@ -117,8 +117,8 @@ under the License.
         <member-entity entity-alias="UGMEM" entity-name="UserLoginSecurityGroup"/>
         <member-entity entity-alias="UG" entity-name="SecurityGroup"/>
 
-        <alias entity-alias="PTYPERSON" name="personStatusId" field="statusId"/>
-        <alias entity-alias="PERSON" name="personPartyId" field="partyId"/>
+        <alias entity-alias="PTYPERSON" name="userStatusId" field="statusId"/>
+        <alias entity-alias="PERSON" name="userPartyId" field="partyId"/>
         <alias entity-alias="PERSON" name="firstName"/>
         <alias entity-alias="PERSON" name="lastName"/>
         <alias entity-alias="PERSON" name="externalId" field="otherLocal"/>

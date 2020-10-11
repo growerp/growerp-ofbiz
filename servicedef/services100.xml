@@ -50,8 +50,9 @@ under the License.
         location="component://growerp/src/100/PartyServices100.groovy"
         invoke="checkCompany" action="GET" auth="false">
         <description>
-            Check if company still available.
+            Check if company still available, returns 'ok' when it is.
         </description>
+        <attribute name="companyPartyId" type="String" mode="IN" optional="false"/>
         <attribute name="ok" type="String" mode="OUT" optional="false"/>
     </service>
 
@@ -127,7 +128,6 @@ under the License.
             Get users registered within the system by company or when partyId is provided a single user.
         </description>
         <attribute name="userPartyId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
-        <attribute name="companyPartyId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
         <attribute name="users" type="List" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
@@ -138,6 +138,7 @@ under the License.
         <description>
             get related company of a user.
         </description>
+        <attribute name="userPartyId" type="String" mode="IN" optional="true"/>
         <attribute name="companyPartyId" type="String" mode="OUT" optional="true"/>
     </service>
     
@@ -147,9 +148,8 @@ under the License.
         <description>
             Update User by himself or company admin.
         </description>
-        <attribute name="base64" type="String" mode="IN" optional="true"/>
         <attribute name="companyPartyId" type="String" mode="IN" optional="true"/>
-        <attribute name="user" type="Map" mode="INOUT" optional="false"/>
+        <attribute name="user" type="Map" mode="INOUT" optional="true"/>
     </service>
 
     <service name="updateUser100" engine="groovy" export="true"
@@ -158,8 +158,7 @@ under the License.
         <description>
             Update User by himself or company admin.
         </description>
-        <attribute name="base64" type="String" mode="IN" optional="true"/>
-        <attribute name="user" type="Map" mode="INOUT" optional="false"/>
+        <attribute name="user" type="Map" mode="INOUT" optional="true"/>
     </service>
 
     <service name="deleteUser100" engine="groovy" export="true"
