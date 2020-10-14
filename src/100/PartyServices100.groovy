@@ -7,8 +7,11 @@ import org.apache.ofbiz.entity.util.EntityUtil
 import org.apache.ofbiz.service.ModelService
 import org.apache.ofbiz.service.ServiceUtil
 import org.apache.ofbiz.common.image.ImageTransform
+import org.apache.ofbiz.common.scripting.ScriptHelperImpl
 import java.awt.image.*
 import java.awt.Image
+import java.awt.Graphics2D
+import java.awt.image.BufferedImage
 import java.util.Base64
 import javax.imageio.ImageIO
 import java.awt.image.BufferedImage
@@ -52,18 +55,22 @@ def getCompanies() {
         contents = from('PartyContent')
             .where([partyId: it.companyPartyId, partyContentTypeId: imageSize])
             .queryList()
-        Map resultData
-        if (contents)
-            resultData = runService('getContentAndDataResource',
-                [contentId: contents[0].contentId])
-        company = [ // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
+        Map imageDataResource
+        if (contents) {
+            systemLogin = from("UserLogin").where([userLoginId: 'system']).queryOne()
+            imageDataResource = runService('getContentAndDataResource',
+                [contentId: contents[0].contentId, userLogin: systemLogin])
+                    .resultData?.imageDataResource
+        }
+        // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
+        company = [ 
             partyId: it.companyPartyId,
             name: it.organizationName,
             classificationId: it.classificationId,
             classificationDescr: it.description,
             email: email,
             currencyId: it.baseCurrencyUomId,
-            image: resultData? resultData.resultData.dataResource.imageDataResource.imageData : null,
+            image: imageDataResource?.imageData?.encodeBase64().toString(),
             employees: users
         ]
         if (parameters.companyPartyId) result.company = company
@@ -105,6 +112,10 @@ def updateCompany() { // can only update by admin own company
             .where(partyId: companyPartyId).queryOne()
         accountingPref.currencyUomId = parameters.company.currencyId
         accountingPref.update() }
+    if (parameters.company.image) runService("createImages100",
+        [ base64: parameters.company.image,
+          type: 'company',
+          id: parameters.company.partyId])
     result.company = runService("getCompanies100",
         [companyPartyId: companyPartyId]).company
     return result    
@@ -180,10 +191,13 @@ def getUsers() {
         contents = from('PartyContent')
             .where([partyId: it.userPartyId, partyContentTypeId: imageSize])
             .queryList()
-        Map resultData
-        if (contents)
-            resultData = runService('getContentAndDataResource',
-                [contentId: contents[0].contentId])
+        Map imageDataResource
+        if (contents) {
+            systemLogin = from("UserLogin").where([userLoginId: 'system']).queryOne()
+            imageDataResource = runService('getContentAndDataResource',
+                [contentId: contents[0].contentId, userLogin: systemLogin])
+                    .resultData?.imageDataResource
+        }
         resultEmail = runService('getPartyEmail',
             [ partyId: it.userPartyId,
               contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
@@ -196,8 +210,7 @@ def getUsers() {
             name: it.userLoginId,
             userGroupId: it.groupId,
             groupDescription: it.groupDescription,
-            image: resultData?
-                resultData.resultData.dataResource.imageDataResource.imageData : null,
+            image: imageDataResource?.imageData?.encodeBase64().toString()
         ]
         if (!parameters.userPartyId) result.users.add(user)
         else result.user = user
@@ -228,6 +241,9 @@ def createUser() {
           currentPassword: password,
           currentPasswordVerify: password])
     if (ServiceUtil.isError(loginResult)) return loginResult
+    runService('createPartyRole',
+        [ partyId: userPartyId,
+          roleTypeId: 'OWNER'])
     runService('addUserLoginToSecurityGroup',
         [ userLoginId: parameters.user.username,
           groupId: parameters.user.userGroupId,
@@ -330,6 +346,12 @@ def resetPassword() {
         
 }
 
+def checkToken() {
+    Map result = success()
+    result.ok = 'ok'
+    return result
+}
+
 def getAuthenticate() {
     Map result = success()
     result.user = runService("getUsers100", // get single user info
@@ -342,68 +364,72 @@ def getAuthenticate() {
 
 def createImages() {
     Map result = success()
-    byte[] imageBytes = Base64.getMimeDecoder().decode(parameters.base64);
-    int fileSize = imageBytes.size()
-    logInfo("======file size: ${fileSize}")
-    drResult = runService("createDataResource", [:])
-    drResult = runService("createImageDataResource",
-        [imageData: imageBytes, dataResourceId: drResult.dataResourceId])
-    contentResultLarge = runService("createContent",
-        [dataResourceId: drResult.dataResourceId])
+    byte[] inputBytes = Base64.getMimeDecoder().decode(parameters.base64);
+    int fileSize = inputBytes.size()
+    dataResourceId = runService("createDataResource",
+        [dataResourceTypeId: 'IMAGE_OBJECT']).dataResourceId
+    runService("createImageDataResource",
+        [imageData: inputBytes, dataResourceId: dataResourceId])
+    contentIdLarge = runService("createContent",
+        [dataResourceId: dataResourceId]).contentId
 
     // byte[] to buffered image
-    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
-    logInfo("===end read")
+    BufferedImage img = ImageIO.read(new ByteArrayInputStream(inputBytes));
 
-    inst scaleFactor = 5000 / fileSize
     // resize image
-    Image newImg = bufImg.getScaledInstance((int) (img.getWidth() * scaleFactor),
-        (int) (img.getHeight() * scaleFactor), Image.SCALE_SMOOTH);
-    BufferedImage bufNewImg = ImageTransform.toBufferedImage(newImg, bufImgType);
+    int scale = 5000 / fileSize
+    int newWidth = img.width * scale
+    int newHeight = img.height * scale
+    Image newImg = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+    BufferedImage bufNewImg = ImageTransform.toBufferedImage(newImg,  img.getType());
 
     // bufferedImage back to byte[]
     baos = new ByteArrayOutputStream();
-    ImageIO.write( bufNewImg, "jpg", baos );
+    ImageIO.write( bufNewImg, "png", baos );
     baos.flush();
     imageBytes = baos.toByteArray();
     baos.close();
-    
-    drResult = runService("createDataResource", [:])
-    drResult = runService("createImageDataResource",
-        [imageData: imageBytes, dataResourceId: drResult.dataResourceId])
-    contentResultMedium = runService("createContent",
-        [dataResourceId: drResult.dataResourceId])
+    // save
+    dataResourceId = runService("createDataResource",
+        [dataResourceTypeId: 'IMAGE_OBJECT']).dataResourceId
+    runService("createImageDataResource",
+        [imageData: imageBytes, dataResourceId: dataResourceId])
+    contentIdMedium = runService("createContent",
+        [dataResourceId: dataResourceId]).contentId
 
-    int scaleFactor = 2000 / fileSize
+    // scale image
+    scale = 2000 / fileSize
+    newWidth = img.width * scale
+    newHeight = img.height * scale
+    newImg = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+    bufNewImg = ImageTransform.toBufferedImage(newImg, img.getType());
 
-    // resize image
-    newImg = bufImg.getScaledInstance((int) (img.getWidth() * scaleFactor),
-        (int) (img.getHeight() * scaleFactor), Image.SCALE_SMOOTH);
-    bufNewImg = ImageTransform.toBufferedImage(newImg, bufImgType);
     // bufferedImage to byte[]
     baos = new ByteArrayOutputStream();
-    ImageIO.write( bufNewImg, "jpg", baos );
+    ImageIO.write( bufNewImg, "png", baos );
     baos.flush();
     imageBytes = baos.toByteArray();
     baos.close();
-    drResult = runService("createDataResource", [:])
-    drResult = runService("createImageDataResource",
-        [imageData: imageBytes, dataResourceId: drResult.dataResourceId])
-    contentResultSmall = runService("createContent",
-        [dataResourceId: drResult.dataResourceId])
+    //save
+    dataResourceId = runService("createDataResource",
+        [dataResourceTypeId: 'IMAGE_OBJECT']).dataResourceId
+    runService("createImageDataResource",
+        [imageData: imageBytes, dataResourceId: dataResourceId])
+    contentIdSmall = runService("createContent",
+        [dataResourceId: dataResourceId]).contentId
 
     if (parameters.type in ['user', 'company']) {
         runService("createPartyContent",
             [ partyId: parameters.id,
-              contentId: contentResultLarge.contentId,
+              contentId: contentIdLarge,
               partyContentTypeId: 'GROWERP-LARGE'])
         runService("createPartyContent",
             [ partyId: parameters.id,
-              contentId: contentResultMedium.contentId,
+              contentId: contentIdMedium,
               partyContentTypeId: 'GROWERP-MEDIUM'])
         runService("createPartyContent",
             [ partyId: parameters.id,
-              contentId: contentResultSmall.contentId,
+              contentId: contentIdSmall,
               partyContentTypeId: 'GROWERP-SMALL'])
     }
     return result

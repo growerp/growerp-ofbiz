@@ -101,7 +101,7 @@ under the License.
 
     <service name="updatePassword100" engine="groovy" export="true"
         location="component://growerp/src/100/PartyServices100.groovy"
-            invoke="updatePassword" action="GET" auth="true">
+            invoke="updatePassword" action="POST" auth="true">
         <attribute name="newPassword" type="String" mode="IN" optional="false"/>
     </service>
 
@@ -113,14 +113,23 @@ under the License.
 
     <service name="getAuthenticate100" engine="groovy" export="true" action="GET"
             location="component://growerp/src/100/PartyServices100.groovy" 
-            invoke="getAuthenticate">
+            invoke="getAuthenticate" auth="true">
         <description>
-            Get Company and user information using token.
+            Get Company and user infor mation using token.
         </description>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
     </service> 
     
+    <service name="checkToken100" engine="groovy" export="true" action="GET"
+            location="component://growerp/src/100/PartyServices100.groovy"
+            invoke="checkToken" auth="true">
+        <description>
+            Check if token still valid.
+        </description>
+        <attribute name="ok" type="String" mode="OUT" optional="true"/>
+    </service>
+
     <service name="getUsers100" engine="groovy" export="true" action="GET"
         location="component://growerp/src/100/PartyServices100.groovy" 
                 invoke="getUsers">
