@@ -81,10 +81,10 @@ def getCompanies() {
 
 def checkCompany() {
     Map result = success()
-    parties = from(CompanyPreferenceAndClassification)
+    parties = from("CompanyPreferenceAndClassification")
         .where(companyPartyId: parameters.companyPartyId)
         .queryList()
-    if(partyList) result.ok = 'ok'
+    if(parties) result.ok = 'ok'
     return result
 }
 
