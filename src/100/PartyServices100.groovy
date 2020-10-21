@@ -23,8 +23,8 @@ import org.apache.commons.lang.RandomStringUtils
 
 
 def boolean isAdmin(userLogin) {
-    if(userLogin.userLoginId == 'system' || from("UserLoginSecurityGroup")
-        .where(userLoginId: userLogin.userLoginId,
+    if(userLogin?.userLoginId == 'system' || from("UserLoginSecurityGroup")
+        .where(userLoginId: userLogin?.userLoginId,
             groupId: "GROWERP_M_ADMIN").queryList())
     return true
     else false
@@ -168,16 +168,16 @@ def registerUserAndCompany() {
 
 def getUsers() {
     Map result = success()
-    List userList
-    if (parameters.userPartyId == userLogin?.partyId) { //users own data
-        userList = from('PersonAndLoginGroup')
-            .where([userPartyId: parameters.userPartyId])
-            .queryList()
-    } else if (isAdmin(parameters.userLogin)) { //get all users from own company
+    List userList = []
+    if (isAdmin(parameters.userLogin)) { //get all users from own company
         companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
         userList = from('CompanyPersonAndLoginGroup') // by company
             .where([companyPartyId: companyPartyId])
             .queryList()            
+    } else if (parameters?.userPartyId == userLogin?.partyId) { //users own data
+        userList = from('PersonAndLoginGroup')
+            .where([userPartyId: parameters.userPartyId])
+            .queryList()
     }
     String imageSize
     if (!parameters.userPartyId) {

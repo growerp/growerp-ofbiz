@@ -24,6 +24,13 @@ under the License.
     <vendor></vendor>
     <version>1.0</version>
 
+    <service name="growerpPing" engine="java" export="true" require-new-transaction="true"
+            location="org.apache.ofbiz.common.CommonServices"
+            invoke="ping" action="GET">
+        <description>Test Ping Service</description>
+        <attribute name="message" type="String" mode="INOUT" optional="true"/>
+    </service>
+
     <service name="getCompanies100" engine="groovy" export="true"
         location="component://growerp/src/100/PartyServices100.groovy"
         invoke="getCompanies" action="GET" auth="false">

@@ -1,3 +1,60 @@
 
 Currently this component is a POC to use Growerp flutter frontend with OFBiz. 
 This looks like is possible with the newly introduced plugin for OFBiz: ofbiz-rest-impl which is required to install too for using GrowERP.
+
+to use a local ofbiz installation  you need the standard trunk version and the REST and this plugin.
+
+To use the ofbiz from flutter chrome, you also need to install Nginx or another browser to be able to access OFBiz via http using OFBiz via https is only possible if you have an officially signed certificate
+
+install ofbiz on Ubuntu:
+git clone https://github.com/apache/ofbiz-framework.git ofbiz
+git clone https://github.com/apache/ofbiz-plugins.git
+cp ofbiz-plugins/ofbiz-rest-impl ofbiz/plugins
+git clone https://github.com/growerp/growerp-ofbiz.git ofbiz/plugins/growerp
+cd ofbiz
+./gradlew loadAll
+./greadlew ofbiz
+
+When in development, change OFBiz so you do not need a valid ssl certificate:
+file: /home/dell/growerpOfbiz/plugins/ofbiz-rest-impl/webapp/ofbiz-rest-jersey/WEB-INF/controller.xml
+change: 
+    from:     <request-map uri="main"><security https="true"/>
+    To:       <request-map uri="main"><security https="false"/>
+
+
+In bevelopment, for flutter web (android/IOS is ok) you need apache2 in front of ofbiz.
+install: 
+sudo apt install apache2
+sudo a2enmod headers
+sudo a2enmod mod_proxy
+sudo a2enmod mod_proxy_ajp
+replace file: /etc/apache2/sites-enabled/000-default.conf
+with this:
+<Proxy *>
+        AddDefaultCharset off
+        Order deny,allow
+        Allow from all
+</Proxy>
+ProxyVia On
+<LocationMatch "/rest/">
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Headers "Authorization"
+    Header always set Access-Control-Allow-Credentials "true"
+</LocationMatch>
+NameVirtualHost *:80
+<VirtualHost *>
+    ServerName localhost
+    ServerAdmin you@example.com
+    ProxyRequests Off
+    ProxyPreserveHost On
+    proxyPass /rest ajp://localhost:8009/rest
+    proxyPassreverse /rest ajp://localhost:8009/rest
+</VirtualHost>
+
+when installed, restart apache2:
+systemctl restart apache2
+
+If you know a beter way to avoid the XMLHttpRequest error?
+Let me know!
+
+
