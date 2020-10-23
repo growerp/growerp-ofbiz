@@ -24,13 +24,13 @@ import org.apache.commons.lang.RandomStringUtils
 
 def boolean isAdmin(userLogin) {
     if(userLogin?.userLoginId == 'system' || from("UserLoginSecurityGroup")
-        .where(userLoginId: userLogin?.userLoginId,
-            groupId: "GROWERP_M_ADMIN").queryList())
+        .where([userLoginId: userLogin?.userLoginId,
+            groupId: "GROWERP_M_ADMIN"]).queryList())
     return true
     else false
 }
 
-def getCompanies() {
+def getCompanies() { // get a single- or a list of companies
     Map result = success()
     List companyList
     String imageSize
@@ -46,7 +46,6 @@ def getCompanies() {
             .queryList()
         imageSize = "GROWERP-SMALL"
     }
-
     companyList.each {
         email = runService('getPartyEmail',
             [   partyId: it.companyPartyId,
@@ -82,7 +81,7 @@ def getCompanies() {
 def checkCompany() {
     Map result = success()
     parties = from("CompanyPreferenceAndClassification")
-        .where(companyPartyId: parameters.companyPartyId)
+        .where([companyPartyId: parameters.companyPartyId])
         .queryList()
     if(parties) result.ok = 'ok'
     return result
@@ -98,8 +97,8 @@ def updateCompany() { // can only update by admin own company
         runService('updatePartyGroup', [partyId: companyPartyId,
             groupName: parameters.company.name])}
     cm = from("PartyContactMechPurpose")
-        .where(partyId: companyPartyId,
-                contactMechPurposeTypeId: 'PRIMARY_EMAIL').queryList()
+        .where([partyId: companyPartyId,
+                contactMechPurposeTypeId: 'PRIMARY_EMAIL']).queryList()
     if (parameters.company.email != oldCompany.email) {
         runService('createUpdatePartyEmailAddress',
             [ partyId: companyPartyId,
@@ -109,7 +108,7 @@ def updateCompany() { // can only update by admin own company
     if (parameters.company.currencyId != oldCompany.currencyId) {
         accountingPref = select("partyId","currencyUomId")
             .from("PartyAccountingPreference")
-            .where(partyId: companyPartyId).queryOne()
+            .where([partyId: companyPartyId]).queryOne()
         accountingPref.currencyUomId = parameters.company.currencyId
         accountingPref.update() }
     if (parameters.company.image) runService("createImages100",
@@ -158,11 +157,12 @@ def registerUserAndCompany() {
             lastName: parameters.lastName,
             userGroupId: 'GROWERP_M_ADMIN',
             email: parameters.emailAddress,
-            username: parameters.username]
+            name: parameters.username,
+            password: parameters.password]
     result.user = runService('createUser100',
         [ user: user, companyPartyId: companyPartyId])?.user
-    resultCompany = runService("getCompanies100",
-        [ partyId: companyPartyId]).company
+    result.company = runService("getCompanies100",
+        [ companyPartyId: companyPartyId]).company
     return result
 }
 
@@ -226,8 +226,8 @@ def createUser() {
     result.user = [:]
     // only admin can add employees in his own company
     loginUserCompanyId = runService("getRelatedCompany100", [:]).companyPartyId
-    //String password = RandomStringUtils.randomAlphanumeric(6); 
-    String password = 'qqqqqq9!'
+    String password = RandomStringUtils.randomAlphanumeric(6); 
+    if (parameters.user.password) password = parameters.user.password
     userPartyId = runService('createPerson',
         [ firstName: parameters.user.firstName,
           lastName: parameters.user.lastName]).partyId
@@ -237,7 +237,7 @@ def createUser() {
           contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
     loginResult = runService('createUserLogin',
         [ partyId: userPartyId,
-          userLoginId: parameters.user.username,
+          userLoginId: parameters.user.name,
           currentPassword: password,
           currentPasswordVerify: password])
     if (ServiceUtil.isError(loginResult)) return loginResult
@@ -245,11 +245,11 @@ def createUser() {
         [ partyId: userPartyId,
           roleTypeId: 'OWNER'])
     runService('addUserLoginToSecurityGroup',
-        [ userLoginId: parameters.user.username,
+        [ userLoginId: parameters.user.name,
           groupId: parameters.user.userGroupId,
           fromDate: UtilDateTime.nowTimestamp()])
     runService('addUserLoginToSecurityGroup', // do not use OFBIZ security system
-        [ userLoginId: parameters.user.username,
+        [ userLoginId: parameters.user.name,
           groupId: 'SUPER',
           fromDate: UtilDateTime.nowTimestamp()])
     if (parameters.user.userGroupId in ['GROWERP_M_ADMIN', 'GROWERP_M_EMPLOYEE']) {
@@ -268,8 +268,15 @@ def createUser() {
         [ base64: parameters.base64,
           type: 'user',
           id: userPartyId])
-
-    result.user = runService("getUsers100", [userPartyId: userPartyId])?.user
+    runService("sendGenericNotificationEmail", [
+        sendTo: user.email,
+        sendFrom: parameters?.company?.email,  // TODO not sure where to get this....
+        subject: 'Welcome to the GrowERP system',
+        templateName: 'component://growerp/template/email/forgotPassword.ftl',
+        templateData: [ password: password ]
+    ])   
+    result.user = parameters.user
+    result.user.partyId = userPartyId
     return result
 }
 def updateUser() {
@@ -297,8 +304,8 @@ def updateUser() {
 
     if (oldUser.email != parameters.user.email) { 
         cm = from("PartyContactMechPurpose")
-            .where(partyId: parameters.user.partyId,
-                    contactMechPurposeTypeId: 'PRIMARY_EMAIL').queryList()
+            .where([partyId: parameters.user.partyId,
+                    contactMechPurposeTypeId: 'PRIMARY_EMAIL']).queryList()
         runService('createUpdatePartyEmailAddress',
             [   partyId: parameters.user.partyId,
                 contactMechId: cm[0].contactMechId,
@@ -307,13 +314,13 @@ def updateUser() {
     }
     if (oldUser.name != parameters.user.name) {
         loginResult = runService('updateUserLogin',
-            [ userLoginId: parameters.user.username])
+            [ userLoginId: parameters.user.name])
         if (ServiceUtil.isError(loginResult)) return loginResult
     }
     if (oldUser.userGroupId != parameters.user.userGroupid) {
         sec = from("UserLoginSecurityGroup")
-                .where(userLoginId: parameters.user.name,
-                        groupId: oldUser.userGroupId).queryList()
+                .where([userLoginId: parameters.user.name,
+                        groupId: oldUser.userGroupId]).queryList()
         runService('removeUserLoginToSecurityGroup',
             [ userLoginId: parameters.user.name,
             fromDate: sec[0].fromDate,
@@ -333,17 +340,49 @@ def updateUser() {
 }
 def deleteUser() {
     Map result = success()
-    
+    party = from("Party").where([partyId: parameters.userLogin.partyId]).queryOne()
+    party.statusId = "PARTY_DISABLED"
+    party.update()
+    return result
 }
 
 def updatePassword() {
-    Map result = success()
-        
+    return runService("updatePassword", [
+        currentPassword: parameters.oldPassword,
+        newPassword: parameters.newPassword,
+        newPasswordVerify: parameters.newPassword
+    ])        
 }
 
 def resetPassword() {
-    Map result = success()
-        
+    // try username
+    userLogin = from("UserLogin").where([userLoginId: 'system']).queryOne()
+    login = from("UserLogin").where([userLoginId: parameters.username]).queryOne()
+    if (login)
+        email = runService("getPartyEmail", [partyId: login.partyId])
+    else  { // try email
+        partyId = runService("findPartyFromEmailAddress",
+            [address: parameters.username, userLogin: userLogin]).partyId
+        if (partyId) {
+            email = parameters.username
+            logins = from("UserLogin").where([partyId: partyId]).queryList()
+            login = logins[0]
+        }
+    }
+    if (email) {
+        newPassword = RandomStringUtils.randomAlphanumeric(6); 
+        user = runService("updatePassword",
+            [newPassword: newPassword, newPasswordVerify: newPassword,
+                userLoginId: login.userLoginId, userLogin: userLogin]) 
+        runService("sendGenericNotificationEmail", [
+            sendTo: email,
+            sendFrom: UtilProperties.getPropertyValue('growerp', 'defaultFromEmailAddress'),
+            subject: 'Your new password from GrowERP',
+            templateName: 'component://growerp/template/email/forgotPassword.ftl',
+            templateData: [password: newPassword]
+            ])
+    } else logInfo("Reset password with not existing username/emailAddress")
+    return success()
 }
 
 def checkToken() {
@@ -434,3 +473,6 @@ def createImages() {
     }
     return result
 }
+
+
+

@@ -92,6 +92,7 @@ under the License.
         <attribute name="lastName" type="String" mode="IN"/>
         <attribute name="username" type="String" mode="IN"/>
         <attribute name="userGroupId" type="String" mode="IN"/>
+        <attribute name="password" type="String" mode="IN"/><!-- just for test purposes  -->
 
         <attribute name="company" type="Map" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
@@ -114,8 +115,9 @@ under the License.
 
     <service name="resetPassword100" engine="groovy" export="true"
         location="component://growerp/src/100/PartyServices100.groovy"
-            invoke="resetPassword" action="GET" auth="true">
-        <description>Will send email with with temp password</description>
+            invoke="resetPassword" action="POST" auth="false">
+        <description>Will send email with with new password when username/email is provided</description>
+        <attribute name="username" type="String" mode="IN" optional="false"/>
     </service>
 
     <service name="getAuthenticate100" engine="groovy" export="true" action="GET"
@@ -141,9 +143,11 @@ under the License.
         location="component://growerp/src/100/PartyServices100.groovy" 
                 invoke="getUsers">
         <description>
-            Get users registered within the system by company or when partyId is provided a single user.
+            Get users registered within the system by company(admin only) or 
+                when partyId is provided a single user.
         </description>
         <attribute name="userPartyId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
+        <attribute name="companyPartyId" type="String" mode="IN" optional="true"/><!-- if provided get empl of company -->
         <attribute name="users" type="List" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
     </service> 
@@ -165,7 +169,7 @@ under the License.
             Update User by himself or company admin.
         </description>
         <attribute name="companyPartyId" type="String" mode="IN" optional="true"/>
-        <attribute name="user" type="Map" mode="INOUT" optional="true"/>
+        <attribute name="user" type="Map" mode="INOUT" optional="false"/>
     </service>
 
     <service name="updateUser100" engine="groovy" export="true"
