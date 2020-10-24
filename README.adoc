@@ -1,5 +1,7 @@
 == GrowERp OFBiz plugin for the Flutter frontend.
-
+////
+check https://powerman.name/doc/asciidoc for format
+////
 === Introduction
 A plugin to serve the GrowERP frontend at https://github.com/growerp/growerp
 
@@ -20,7 +22,8 @@ cd ofbiz
 When in development, we need to change ofbiz to make the rest interface using http instead of https which is the OFBiz default.
 
 === change OFBiz so you do not need a valid ssl certificate:
-file: /home/dell/growerpOfbiz/plugins/ofbiz-rest-impl/webapp/ofbiz-rest-jersey/WEB-INF/controller.xml +
+file: + 
+plugins/ofbiz-rest-impl/webapp/ofbiz-rest-jersey/WEB-INF/controller.xml +
 change: +
     from:     <request-map uri="main"><security https="true"/> +
     To:       <request-map uri="main"><security https="false"/>
