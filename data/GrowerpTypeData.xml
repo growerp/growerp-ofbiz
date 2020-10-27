@@ -21,7 +21,7 @@ under the License.
 <entity-engine-xml>
 
     <SystemProperty systemResourceId="growerp" 
-        systemPropertyId="defaultFromEmailAddress" systemPropertyValue="admin@growerp.com"/>
+        systemPropertyId="defaultFromEmailAddress" systemPropertyValue="supoort@growerp.com"/>
 
     <PartyClassificationType partyClassificationTypeId="PcltMobileApp" description="Flutter Application"/>
     <PartyClassificationGroup partyClassificationGroupId="AppAdmin" partyClassificationTypeId="PcltMobileApp" description="Admin app to maintain backoffice data, products, categories, orders"/>

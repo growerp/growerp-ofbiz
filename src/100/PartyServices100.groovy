@@ -270,7 +270,7 @@ def createUser() {
           id: userPartyId])
     runService("sendGenericNotificationEmail", [
         sendTo: user.email,
-        sendFrom: parameters?.company?.email,  // TODO not sure where to get this....
+        sendFrom: UtilProperties.getPropertyValue('growerp', 'defaultFromEmailAddress'),
         subject: 'Welcome to the GrowERP system',
         templateName: 'component://growerp/template/email/forgotPassword.ftl',
         templateData: [ password: password ]
@@ -281,7 +281,6 @@ def createUser() {
 }
 def updateUser() {
     Map result = success()
-
     if (parameters.user.partyId != userLogin.partyId) { // own data
         companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
         loginCompanyPartyId = runService("getRelatedCompany100", 
@@ -294,8 +293,8 @@ def updateUser() {
     }
 
     oldUser = runService("getUsers100",[userPartyId: parameters.user.partyId]).user
-    if (oldUser.lastName != parameters.user.lastName || 
-            oldUser.firstName != parameters.user.firstName) {
+    if (oldUser?.lastName != parameters.user.lastName || 
+            oldUser?.firstName != parameters.user.firstName) {
         runService('updatePerson',
             [   partyId: parameters.user.partyId,
                 firstName: parameters.user.firstName,
@@ -416,7 +415,7 @@ def createImages() {
     BufferedImage img = ImageIO.read(new ByteArrayInputStream(inputBytes));
 
     // resize image
-    int scale = 5000 / fileSize
+    def scale = 5000 / fileSize
     int newWidth = img.width * scale
     int newHeight = img.height * scale
     Image newImg = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
