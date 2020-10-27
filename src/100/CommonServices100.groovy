@@ -11,7 +11,7 @@ import org.apache.ofbiz.common.image.ImageTransform
 def getRelatedCompany() { // from is company, to is employee
     Map result = success()
     if (!parameters.userPartyId) // use login party when not provided
-        parameters.userPartyId = parameters.userLogin.partyId
+        parameters.userPartyId = parameters?.userLogin?.partyId
     rel = from('PartyRelationship')
         .where([ roleTypeIdFrom: 'INTERNAL_ORGANIZATIO',
                 roleTypeIdTo: '_NA_',
