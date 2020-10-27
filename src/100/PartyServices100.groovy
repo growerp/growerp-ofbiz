@@ -169,16 +169,25 @@ def registerUserAndCompany() {
 def getUsers() {
     Map result = success()
     List userList = []
-    if (isAdmin(parameters.userLogin)) { //get all users from own company
-        companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
-        userList = from('CompanyPersonAndLoginGroup') // by company
-            .where([companyPartyId: companyPartyId])
-            .queryList()            
-    } else if (parameters?.userPartyId == userLogin?.partyId) { //users own data
+    companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+    //users own data
+    if (parameters?.userPartyId && 
+            parameters?.userPartyId == userLogin?.partyId)
         userList = from('PersonAndLoginGroup')
             .where([userPartyId: parameters.userPartyId])
             .queryList()
-    }
+    // other single users in the same cmpany and admin
+    else if (parameters?.userPartyId && isAdmin(parameters.userLogin))
+        userList = from('CompanyPersonAndLoginGroup')
+            .where([userPartyId: parameters.userPartyId,
+                        companyPartyId: companyPartyId])
+            .queryList()
+    // all users in the users company AND admin
+    else if (isAdmin(parameters.userLogin))
+        userList = from('CompanyPersonAndLoginGroup') // by company
+            .where([companyPartyId: companyPartyId])
+            .queryList()
+
     String imageSize
     if (!parameters.userPartyId) {
         result.users = [];
@@ -312,16 +321,17 @@ def updateUser() {
                 contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
     }
     if (oldUser.name != parameters.user.name) {
-        loginResult = runService('updateUserLogin',
+        loginResult = runService('updateUserLoginId',
             [ userLoginId: parameters.user.name])
         if (ServiceUtil.isError(loginResult)) return loginResult
     }
-    if (oldUser.userGroupId != parameters.user.userGroupid) {
+    if (oldUser.userGroupId != parameters.user.userGroupid
+            || oldUser.name != parameters.user.name) {
         sec = from("UserLoginSecurityGroup")
-                .where([userLoginId: parameters.user.name,
+                .where([userLoginId: oldUser.name,
                         groupId: oldUser.userGroupId]).queryList()
         runService('removeUserLoginToSecurityGroup',
-            [ userLoginId: parameters.user.name,
+            [ userLoginId: oldUser.name,
             fromDate: sec[0].fromDate,
             groupId: oldUser.userGroupId])
         runService('addUserLoginToSecurityGroup',
@@ -392,6 +402,7 @@ def checkToken() {
 
 def getAuthenticate() {
     Map result = success()
+    logInfo("===getauth loginId ${parameters.userLogin.userLoginId}")
     result.user = runService("getUsers100", // get single user info
         [userPartyId: parameters.userLogin.partyId])?.user
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId

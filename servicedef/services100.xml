@@ -124,7 +124,7 @@ under the License.
             location="component://growerp/src/100/PartyServices100.groovy" 
             invoke="getAuthenticate" auth="true">
         <description>
-            Get Company and user infor mation using token.
+            Get Company and user information using token.
         </description>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
         <attribute name="company" type="Map" mode="OUT" optional="true"/>

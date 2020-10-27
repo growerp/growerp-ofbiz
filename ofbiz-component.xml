@@ -45,10 +45,10 @@ under the License.
     <test-suite loader="main" location="testdef/GrowerpTests.xml"/>
 
     <!-- web applications; will be mounted when using the embedded container -->
-    <webapp name="growerp"
+    <!--webapp name="growerp"
         title="Growerp"
         server="default-server"
         location="webapp/growerp"
         base-permission="OFBTOOLS,GROWERP"
-        mount-point="/growerp"/>
+        mount-point="/growerp"/-->
 </ofbiz-component>
