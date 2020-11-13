@@ -147,4 +147,89 @@ under the License.
             </condition-list>
         </entity-condition>
     </view-entity>
+
+    <view-entity entity-name="ProductStoreAndCatalog" package-name="org.growerp.catalog">
+        <description>Get the catalog related to the store which contains the owner</description>
+        <member-entity entity-alias="PRODSTORE" entity-name="ProductStore"/>
+        <member-entity entity-alias="PRODSTORECAT" entity-name="ProductStoreCatalog"/>
+        <member-entity entity-alias="PRODCAT" entity-name="ProdCatalog"/>
+
+        <alias entity-alias="PRODSTORE" name="productStoreId"/>
+        <alias entity-alias="PRODSTORE" name="ownerPartyId" field="payToPartyId"/>
+        <alias entity-alias="PRODCAT" name="prodCatalogId"/>
+
+        <view-link entity-alias="PRODSTORE" rel-entity-alias="PRODSTORECAT">
+            <key-map field-name="productStoreId"/></view-link>
+        <view-link entity-alias="PRODSTORECAT" rel-entity-alias="PRODCAT">
+            <key-map field-name="prodCatalogId"/></view-link>
+    </view-entity>
+
+    <view-entity entity-name="CompanyCategory" package-name="org.growerp.catalog">
+        <description>get all categories belonging to a single catalog and productStore</description>
+        <member-entity entity-alias="PRODSTORE" entity-name="ProductStore"/>
+        <member-entity entity-alias="PRODSTORECAT" entity-name="ProductStoreCatalog"/>
+        <member-entity entity-alias="PRODCAT" entity-name="ProdCatalog"/>
+        <member-entity entity-alias="PRODCATCATG" entity-name="ProdCatalogCategory"/>
+        <member-entity entity-alias="PRODCATG" entity-name="ProductCategory"/>
+
+        <alias entity-alias="PRODSTORE" name="productStoreId"/>
+        <alias entity-alias="PRODSTORE" name="ownerPartyId" field="payToPartyId"/>
+        <alias entity-alias="PRODCAT" name="prodCatalogId"/>
+        <alias entity-alias="PRODCATCATG" name="fromDate"/>
+        <alias entity-alias="PRODCATCATG" name="thruDate"/>
+        <alias entity-alias="PRODCATG" name="productCategoryId"/>
+        <alias entity-alias="PRODCATG" name="categoryName"/>
+
+        <view-link entity-alias="PRODSTORE" rel-entity-alias="PRODSTORECAT">
+            <key-map field-name="productStoreId"/></view-link>
+        <view-link entity-alias="PRODSTORECAT" rel-entity-alias="PRODCAT">
+            <key-map field-name="prodCatalogId"/></view-link>
+        <view-link entity-alias="PRODCAT" rel-entity-alias="PRODCATCATG">
+            <key-map field-name="prodCatalogId"/></view-link>
+        <view-link entity-alias="PRODCATCATG" rel-entity-alias="PRODCATG" rel-optional="true">
+            <key-map field-name="productCategoryId"/></view-link>
+        <entity-condition filter-by-date="true"/>
+    </view-entity>
+
+    <view-entity entity-name="CompanyProduct" package-name="org.growerp.catalog">
+        <description>get all categories belonging to a single catalog and productStore</description>
+        <member-entity entity-alias="PRODSTORE" entity-name="ProductStore"/>
+        <member-entity entity-alias="PRODSTORECAT" entity-name="ProductStoreCatalog"/>
+        <member-entity entity-alias="PRODCAT" entity-name="ProdCatalog"/>
+        <member-entity entity-alias="PRODCATCATG" entity-name="ProdCatalogCategory"/>
+        <member-entity entity-alias="PRODCATG" entity-name="ProductCategory"/>
+        <member-entity entity-alias="PRODCATGMEM" entity-name="ProductCategoryMember"/>
+        <member-entity entity-alias="PRODUCT" entity-name="Product"/>
+        <member-entity entity-alias="PRODPRICE" entity-name="ProductPrice"/>
+
+        <alias entity-alias="PRODSTORE" name="productStoreId"/>
+        <alias entity-alias="PRODSTORE" name="ownerPartyId" field="payToPartyId"/>
+        <alias entity-alias="PRODCAT" name="prodCatalogId"/>
+        <alias entity-alias="PRODCATCATG" name="fromDate"/>
+        <alias entity-alias="PRODCATCATG" name="thruDate"/>
+        <alias entity-alias="PRODCATG" name="productCategoryId"/>
+        <alias entity-alias="PRODCATG" name="categoryName"/>
+        <alias entity-alias="PRODCATGMEM" name="productFromDate" field="fromDate"/>
+        <alias entity-alias="PRODCATGMEM" name="productThruDate" field="thruDate"/>
+        <alias entity-alias="PRODUCT" name="productId"/>
+        <alias entity-alias="PRODUCT" name="productName"/>
+        <alias entity-alias="PRODUCT" name="description"/>
+        <alias entity-alias="PRODPRICE" name="price"/>
+
+        <view-link entity-alias="PRODSTORE" rel-entity-alias="PRODSTORECAT">
+            <key-map field-name="productStoreId"/></view-link>
+        <view-link entity-alias="PRODSTORECAT" rel-entity-alias="PRODCAT">
+            <key-map field-name="prodCatalogId"/></view-link>
+        <view-link entity-alias="PRODCAT" rel-entity-alias="PRODCATCATG">
+            <key-map field-name="prodCatalogId"/></view-link>
+        <view-link entity-alias="PRODCATCATG" rel-entity-alias="PRODCATG">
+            <key-map field-name="productCategoryId"/></view-link>
+        <view-link entity-alias="PRODCATG" rel-entity-alias="PRODCATGMEM">
+            <key-map field-name="productCategoryId"/></view-link>
+        <view-link entity-alias="PRODCATGMEM" rel-entity-alias="PRODUCT" rel-optional="true">
+            <key-map field-name="productId"/></view-link>
+        <view-link entity-alias="PRODUCT" rel-entity-alias="PRODPRICE" rel-optional="true">
+            <key-map field-name="productId"/></view-link>
+        <entity-condition filter-by-date="true"/>
+    </view-entity>
 </entitymodel>

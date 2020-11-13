@@ -35,5 +35,11 @@ under the License.
     <PartyContentType description="Large/original size Image" partyContentTypeId="GROWERP-LARGE"/>
     <PartyContentType description="Medium size Image" partyContentTypeId="GROWERP-MEDIUM"/>
     <PartyContentType description="Small size Image" partyContentTypeId="GROWERP-SMALL"/>
+    <PartyContentType description="Large/original size Image" prodCatContentTypeId="GROWERP-LARGE"/>
+    <PartyContentType description="Medium size Image" prodCatContentTypeId="GROWERP-MEDIUM"/>
+    <PartyContentType description="Small size Image" prodCatContentTypeId="GROWERP-SMALL"/>
+    <PartyContentType description="Large/original size Image" productContentTypeId="GROWERP-LARGE"/>
+    <PartyContentType description="Medium size Image" productContentTypeId="GROWERP-MEDIUM"/>
+    <PartyContentType description="Small size Image" productContentTypeId="GROWERP-SMALL"/>
 
 </entity-engine-xml>

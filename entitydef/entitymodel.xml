@@ -28,4 +28,18 @@ under the License.
     <copyright></copyright>
     <version></version>
 
+<!--    <extend-entity entity-name="Product">
+        <field name="ownerPartyId" type="id"><description>party owning this product</description></field>
+        <relation type="one" fk-name="PRODUCT_PARTY" rel-entity-name="Party">
+            <key-map field-name="ownerPartyId" rel-field-name="partyId"/>
+        </relation>    
+    </extend-entity>
+    
+    <extend-entity entity-name="ProductCategory">
+        <field name="ownerPartyId" type="id"><description>party owning this category</description></field>
+        <relation type="one" fk-name="PRODUCTCATEGORY_PARTY" rel-entity-name="Party">
+            <key-map field-name="ownerPartyId" rel-field-name="partyId"/>
+        </relation>    
+    </extend-entity>
+-->
 </entitymodel>

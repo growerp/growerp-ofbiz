@@ -60,7 +60,7 @@ under the License.
             Check if company still available, returns 'ok' when it is.
         </description>
         <attribute name="companyPartyId" type="String" mode="IN" optional="false"/>
-        <attribute name="ok" type="String" mode="OUT" optional="false"/>
+        <attribute name="ok" type="String" mode="OUT" optional="true"/>
     </service>
 
     <service name="createImages100" engine="groovy"
@@ -166,7 +166,7 @@ under the License.
         location="component://growerp/src/100/PartyServices100.groovy"
         invoke="createUser" action="POST">
         <description>
-            Update User by himself or company admin.
+            Create User by himself or company admin.
         </description>
         <attribute name="companyPartyId" type="String" mode="IN" optional="true"/>
         <attribute name="user" type="Map" mode="INOUT" optional="false"/>
@@ -185,8 +185,101 @@ under the License.
         location="component://growerp/src/100/PartyServices100.groovy"
         invoke="deleteUser" action="POST">
         <description>
-            Update User by himself or company admin.
+            Delete User by himself or company admin.
         </description>
         <attribute name="userPartyId" type="String" mode="IN" optional="false"/>
+        <attribute name="userPartyId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- catalog services -->
+    <service name="getCatalog100" engine="groovy" export="true" action="GET"
+        location="component://growerp/src/100/CatalogServices100.groovy" 
+                invoke="getCatalog">
+        <description>
+            Get product and categories of a specific company.
+        </description>
+        <attribute name="companyPartyId" type="String" mode="IN" optional="false"/><!-- if provided single user only -->
+        <attribute name="products" type="List" mode="OUT" optional="true"/>
+        <attribute name="categories" type="List" mode="OUT" optional="true"/>
+    </service> 
+
+    <service name="getProducts100" engine="groovy" export="true" action="GET"
+        location="component://growerp/src/100/CatalogServices100.groovy" 
+                invoke="getProducts">
+        <description>
+            Get a single or multiple products of a specific company.
+        </description>
+        <attribute name="productId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
+        <attribute name="products" type="List" mode="OUT" optional="true"/>
+        <attribute name="product" type="Map" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="createProduct100" engine="groovy" export="true"
+        location="component://growerp/src/100/CatalogServices100.groovy"
+        invoke="createProduct" action="POST">
+        <description>
+            Create product by company admin
+        </description>
+        <attribute name="product" type="Map" mode="IN" optional="false"/>
+        <attribute name="product" type="Map" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="updateProduct100" engine="groovy" export="true"
+        location="component://growerp/src/100/CatalogServices100.groovy"
+        invoke="updateProduct" action="POST">
+        <description>
+            Update product by company admin.
+        </description>
+        <attribute name="product" type="Map" mode="IN" optional="false"/>
+        <attribute name="product" type="Map" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="deleteProduct100" engine="groovy" export="true"
+        location="component://growerp/src/100/CatalogServices100.groovy"
+        invoke="deleteProduct" action="POST">
+        <description>
+            Delete Product by company admin.
+        </description>
+        <attribute name="productId" type="String" mode="INOUT" optional="false"/>
+    </service>
+
+    <service name="getCategories100" engine="groovy" export="true" action="GET"
+        location="component://growerp/src/100/CatalogServices100.groovy" 
+                invoke="getCategories">
+        <description>
+            Get a single or multiple categories of a specific company.
+        </description>
+        <attribute name="categoryId" type="String" mode="IN" optional="true"/>
+        <attribute name="categories" type="List" mode="OUT" optional="true"/>
+        <attribute name="category" type="Map" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="createCategory100" engine="groovy" export="true"
+        location="component://growerp/src/100/CatalogServices100.groovy"
+        invoke="createCategory" action="POST">
+        <description>
+            Create category by company admin
+        </description>
+        <attribute name="category" type="Map" mode="IN" optional="false"/>
+        <attribute name="category" type="Map" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="updateCategory100" engine="groovy" export="true"
+        location="component://growerp/src/100/CatalogServices100.groovy"
+        invoke="updateCategory" action="POST">
+        <description>
+            Update category by company admin.
+        </description>
+        <attribute name="category" type="Map" mode="IN" optional="false"/>
+        <attribute name="category" type="Map" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="deleteCategory100" engine="groovy" export="true"
+        location="component://growerp/src/100/CatalogServices100.groovy"
+        invoke="deleteCategory" action="POST">
+        <description>
+            Delete Category by company admin.
+        </description>
+        <attribute name="categoryId" type="String" mode="INOUT" optional="false"/>
     </service>
 </services>

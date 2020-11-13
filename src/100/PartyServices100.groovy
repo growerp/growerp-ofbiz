@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *******************************************************************************/
 import java.sql.Timestamp
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
@@ -89,7 +107,7 @@ def checkCompany() {
 
 def updateCompany() { // can only update by admin own company
     Map result = success()
-    if (isAdmin(userLogin) == false) return error("Not authorized!")
+    if (isAdmin(parameters.userLogin) == false) return error("Not authorized!")
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
     oldCompany = runService("getCompanies100",
         [companyPartyId: companyPartyId]).company
@@ -110,7 +128,7 @@ def updateCompany() { // can only update by admin own company
             .from("PartyAccountingPreference")
             .where([partyId: companyPartyId]).queryOne()
         accountingPref.currencyUomId = parameters.company.currencyId
-        accountingPref.update() }
+        accountingPref.store() }
     if (parameters.company.image) runService("createImages100",
         [ base64: parameters.company.image,
           type: 'company',
@@ -290,12 +308,12 @@ def createUser() {
 }
 def updateUser() {
     Map result = success()
-    if (parameters.user.partyId != userLogin.partyId) { // own data
+    if (parameters.user.partyId != parameters.userLogin.partyId) { // own data
         companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
         loginCompanyPartyId = runService("getRelatedCompany100", 
             [userpartyid: parameters.user.partyId]).companyPartyId
         if (companyPartyId != loginCompanyPartyId) { // own company
-            if (!isAdmin(userLogin)) { // only admin can
+            if (!isAdmin(parameters.userLogin)) { // only admin can
                 return error("No access to user ${parameters.user.partyId}")
             }
         }
@@ -349,9 +367,12 @@ def updateUser() {
 }
 def deleteUser() {
     Map result = success()
-    party = from("Party").where([partyId: parameters.userLogin.partyId]).queryOne()
-    party.statusId = "PARTY_DISABLED"
-    party.update()
+    if (!isAdmin(parameters.userLogin) && parameters.userPartyId != parameters.userLogin.partyId)
+        return error("No access to user ${parameters.userPartyId}")
+    parties = from("Party").where([partyId: parameters.userPartyId]).queryList()
+    parties[0].statusId = "PARTY_DISABLED"
+    parties[0].store()
+    result.userPartyId = parameters.userPartyId
     return result
 }
 
@@ -364,18 +385,17 @@ def updatePassword() {
 }
 
 def resetPassword() {
-    // try username
     userLogin = from("UserLogin").where([userLoginId: 'system']).queryOne()
+    String email;
+    // try username
     login = from("UserLogin").where([userLoginId: parameters.username]).queryOne()
     if (login)
-        email = runService("getPartyEmail", [partyId: login.partyId])
+        email = runService("getPartyEmail", [partyId: login.partyId]).emailAddress
     else  { // try email
         partyId = runService("findPartyFromEmailAddress",
             [address: parameters.username, userLogin: userLogin]).partyId
         if (partyId) {
             email = parameters.username
-            logins = from("UserLogin").where([partyId: partyId]).queryList()
-            login = logins[0]
         }
     }
     if (email) {
@@ -390,7 +410,8 @@ def resetPassword() {
             templateName: 'component://growerp/template/email/forgotPassword.ftl',
             templateData: [password: newPassword]
             ])
-    } else logInfo("Reset password with not existing username/emailAddress")
+        logInfo("new password: $newPassword send to email: $email")
+    } else logWarning("Reset password with not existing username/emailAddress")
     return success()
 }
 
@@ -402,7 +423,6 @@ def checkToken() {
 
 def getAuthenticate() {
     Map result = success()
-    logInfo("===getauth loginId ${parameters.userLogin.userLoginId}")
     result.user = runService("getUsers100", // get single user info
         [userPartyId: parameters.userLogin.partyId])?.user
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
