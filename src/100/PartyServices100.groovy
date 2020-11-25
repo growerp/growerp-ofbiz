@@ -68,7 +68,7 @@ def getCompanies() { // get a single- or a list of companies
         email = runService('getPartyEmail',
             [   partyId: it.companyPartyId,
                 contactMechPurposeTypeId: 'PRIMARY_EMAIL']).emailAddress
-        users = runService('getUsers100', [:])?.users
+        users = runService('getUsers100', [companyPartyId: it.companyPartyId]).users
         contents = from('PartyContent')
             .where([partyId: it.companyPartyId, partyContentTypeId: imageSize])
             .queryList()
@@ -188,24 +188,32 @@ def getUsers() {
     Map result = success()
     List userList = []
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
-    //users own data
-    if (parameters?.userPartyId && 
-            parameters?.userPartyId == userLogin?.partyId)
+    otherUserCompanyPartyId = runService("getRelatedCompany100", 
+            [userPartyId: parameters.userPartyId]).companyPartyId
+    //users own data or not have company(yet) suppliers, customers, leeds etc
+    //logInfo("==1==logged in user: ${parameters.userLogin?.partyId} requested party: ${parameters.userPartyId}")
+    if ((parameters?.userPartyId && 
+            parameters?.userPartyId == parameters?.userLogin?.partyId)
+                || !otherUserCompanyPartyId) {
+        //logInfo("=====own data or customer====")
         userList = from('PersonAndLoginGroup')
             .where([userPartyId: parameters.userPartyId])
             .queryList()
-    // other single users in the same cmpany and admin
-    else if (parameters?.userPartyId && isAdmin(parameters.userLogin))
+    // other single users in the same company and admin
+    } else if (parameters?.userPartyId && isAdmin(parameters.userLogin)) {
+        //logInfo("====other user data by admin=========")
         userList = from('CompanyPersonAndLoginGroup')
             .where([userPartyId: parameters.userPartyId,
                         companyPartyId: companyPartyId])
             .queryList()
     // all users in the users company AND admin
-    else if (isAdmin(parameters.userLogin))
+    } else if (isAdmin(parameters.userLogin)) {// get all users of a company
+        //logInfo("======all users of a company by admin=====")
         userList = from('CompanyPersonAndLoginGroup') // by company
             .where([companyPartyId: companyPartyId])
             .queryList()
-
+    }
+    //logInfo("====records found: ${userList?.size()}")
     String imageSize
     if (!parameters.userPartyId) {
         result.users = [];
@@ -228,7 +236,6 @@ def getUsers() {
         resultEmail = runService('getPartyEmail',
             [ partyId: it.userPartyId,
               contactMechPurposeTypeId: 'PRIMARY_EMAIL'])
-        // see model in https://github.com/growerp/growerp/blob/master/lib/models/user.dart
         user = [ 
             partyId: it.userPartyId,
             firstName: it.firstName,
@@ -251,8 +258,9 @@ def loadDefaultData() {
 def createUser() {
     Map result = success()
     result.user = [:]
+    logInfo("====incoming new user: ${parameters.user}")
     // only admin can add employees in his own company
-    loginUserCompanyId = runService("getRelatedCompany100", [:]).companyPartyId
+    // companyPartyid = runService("getRelatedCompany100", [:]).companyPartyId
     String password = RandomStringUtils.randomAlphanumeric(6); 
     if (parameters.user.password) password = parameters.user.password
     userPartyId = runService('createPerson',

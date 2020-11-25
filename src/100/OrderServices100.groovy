@@ -26,10 +26,93 @@ import org.apache.ofbiz.service.ModelService
 import org.apache.ofbiz.service.ServiceUtil
 import org.apache.ofbiz.common.image.ImageTransform
 
-def getCatalog() { // from is company, to is employee
+def createOrder() { // from is company, to is employee
     Map result = success()
+    companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+    company = runService("getCompanies100", [companyPartyId: companyPartyId]).company
 
+    orderId = runService('createOrderHeader',
+            [currencyUomId: company.currencyId]).orderId
+    runService('ensurePartyRole',
+            [partyId: order.customerPartyId, roleTypeId: 'BILL_TO_CUSTOMER'])
+    runService('addOrderRole', [
+            orderId: orderId,
+            roleTypeId: 'BILL_TO_CUSTOMER',
+            partyId: order.customerPartyId ])
+    runService('ensurePartyRole',
+            [partyId: company.partyId, roleTypeId: 'BILL_FROM_VENDOR'])
+    runService('addOrderRole', [
+            orderId: orderId,
+            roleTypeId: 'BILL_FROM_VENDOR',
+            partyId: company.partyId ])
+    BigDecimal grandTotal = BigDecimal.ZERO
+    order.orderItems.each { item ->
+        grandTotal = grandTotal.add(
+            new BigDecimal(item.quantity).multiply(new BigDecimal(item.price)))
+        GenericValue orderItem = makeValue('OrderItem')
+        delegator.setNextSubSeqId(orderItem, "orderItemSeqId", 5, 1)
+        orderItem.orderId = orderId
+        orderItem.productId = item.productId
+        orderItem.itemDescription = item.description
+        orderItem.quantity = item.quantity
+        orderItem.unitPrice = item.price
+        orderItem.create()
+    }
+    order = from('OrderHeader').where([orderId: orderId]).queryOne()
+    order.grandTotal = grandTotal;
+    order.store()
+    result.order = runService('getOrders100', [orderId: orderId]).order
+    return result
+}
 
-
+def getOrders() {
+    Map result = success()
+    companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+    orders = []
+    if (!parameters.orderId) {
+        result.orders = []
+        orders = from('OrderHeaderAndRoles')
+                .where([roleTypeId: 'BILL_FROM_VENDOR',
+                        partyId: companyPartyId]).queryList()
+    } else {
+        result.order = [:]
+        orders = from('OrderHeaderAndRoles')
+                .where([roleTypeId: 'BILL_FROM_VENDOR',
+                        orderId: parameters.orderId,
+                        partyId: companyPartyId]).queryList()
+    }
+    orders.each{ order ->
+        orderItems = from('OrderItem')
+                    .where([orderId: order.orderId]).queryList()
+        items = []
+        orderItems.each{ item ->
+            item = [
+                orderItemSeqId: item.orderItemSeqId,
+                productId: item.productId,
+                quantity: item.quantity.toString(),
+                price: item.unitPrice.toString(),
+                description: item.itemDescription
+            ]
+            items.add(item)
+        }
+        orderRoles = from('OrderRole')
+            .where([roleTypeId: 'BILL_TO_CUSTOMER',
+                    orderId: order.orderId]).queryList()
+        user = runService('getUsers100', [userPartyId: orderRoles[0].partyId]).user
+        orderOut = [
+            orderId: order.orderId,
+            statusId: order.statusId,
+            placedDate: order.orderDate.toString().substring(0,11),
+            placedTime: order.orderDate.toString().substring(11,16),
+            customerPartyId: orderRoles[0].partyId,
+            firstName: user?.firstName,
+            lastName: user?.lastName,
+            email: user?.email,
+            grandTotal: order.grandTotal.toString(),
+            orderItems: items
+        ]
+        if (!parameters.orderId) result.orders.add()
+        else result.order = orderOut
+    }
     return result
 }

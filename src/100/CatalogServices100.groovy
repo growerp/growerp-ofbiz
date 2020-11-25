@@ -95,7 +95,6 @@ def getProducts() {
             .filterByDate("productFromDate", "productThruDate")
             .queryList()
     }
-logInfo("====products found: $productList")
     productList.each {
         contents = from('ProductContent')
             .where([productId: it.productId, productContentTypeId: imageSize])
@@ -121,7 +120,6 @@ logInfo("====products found: $productList")
 
 def createProduct() {
     Map result = success()
-    logInfo("=======inp product: $product")
     // only admin can add employees in his own company
     if (!isAdmin(parameters.userLogin)) { // only admin can
         return error("No access to user ${parameters.userLogin.partyId}")
