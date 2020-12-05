@@ -63,6 +63,11 @@ def getCompanies() { // get a single- or a list of companies
             .where([classificationId: parameters.classificationId])
             .queryList()
         imageSize = "GROWERP-SMALL"
+    } else {
+        result.companies = []
+        companyList = from('CompanyPreferenceAndClassification')
+            .queryList()
+        imageSize = "GROWERP-SMALL"
     }
     companyList.each {
         email = runService('getPartyEmail',
@@ -79,7 +84,6 @@ def getCompanies() { // get a single- or a list of companies
                 [contentId: contents[0].contentId, userLogin: systemLogin])
                     .resultData?.imageDataResource
         }
-        // see model in https://github.com/growerp/growerp/blob/master/lib/models/company.dart
         company = [ 
             partyId: it.companyPartyId,
             name: it.organizationName,
@@ -91,7 +95,7 @@ def getCompanies() { // get a single- or a list of companies
             employees: users
         ]
         if (parameters.companyPartyId) result.company = company
-        else if (parameters.classificationId) result.companies.add(company)
+        else result.companies.add(company)
     }
     return result
 }
@@ -188,11 +192,19 @@ def getUsers() {
     Map result = success()
     List userList = []
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
+    //logInfo("====getUsers with userGroupId: ${parameters.userGroupId} companyPartyId: $companyPartyId")
     otherUserCompanyPartyId = runService("getRelatedCompany100", 
             [userPartyId: parameters.userPartyId]).companyPartyId
     //users own data or not have company(yet) suppliers, customers, leeds etc
     //logInfo("==1==logged in user: ${parameters.userLogin?.partyId} requested party: ${parameters.userPartyId}")
-    if ((parameters?.userPartyId && 
+
+    if (parameters.userGroupId) {
+        //logInfo("=====by usergroup over all companies===")
+        // TODO: need some limitation by company here too.
+        userList = from('PersonAndLoginGroup')
+            .where([userGroupId: parameters.userGroupId])
+            .queryList()
+    } else if ((parameters?.userPartyId && 
             parameters?.userPartyId == parameters?.userLogin?.partyId)
                 || !otherUserCompanyPartyId) {
         //logInfo("=====own data or customer====")

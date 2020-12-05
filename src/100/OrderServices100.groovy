@@ -32,7 +32,8 @@ def createOrder() { // from is company, to is employee
     company = runService("getCompanies100", [companyPartyId: companyPartyId]).company
 
     orderId = runService('createOrderHeader',
-            [currencyUomId: company.currencyId]).orderId
+            [currencyUomId: company.currencyId,
+             orderTypeId: 'SALES_ORDER']).orderId
     runService('ensurePartyRole',
             [partyId: order.customerPartyId, roleTypeId: 'BILL_TO_CUSTOMER'])
     runService('addOrderRole', [
@@ -46,12 +47,12 @@ def createOrder() { // from is company, to is employee
             roleTypeId: 'BILL_FROM_VENDOR',
             partyId: company.partyId ])
     BigDecimal grandTotal = BigDecimal.ZERO
-    order.orderItems.each { item ->
+    order.orderItems.eachWithIndex { item,index ->
         grandTotal = grandTotal.add(
             new BigDecimal(item.quantity).multiply(new BigDecimal(item.price)))
         GenericValue orderItem = makeValue('OrderItem')
-        delegator.setNextSubSeqId(orderItem, "orderItemSeqId", 5, 1)
         orderItem.orderId = orderId
+        orderItem.orderItemSeqId = (index+1).toString().padLeft(3,'0')
         orderItem.productId = item.productId
         orderItem.itemDescription = item.description
         orderItem.quantity = item.quantity
@@ -69,16 +70,16 @@ def getOrders() {
     Map result = success()
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
     orders = []
-    if (!parameters.orderId) {
-        result.orders = []
-        orders = from('OrderHeaderAndRoles')
-                .where([roleTypeId: 'BILL_FROM_VENDOR',
-                        partyId: companyPartyId]).queryList()
-    } else {
+    if (parameters.orderId && parameters.orderId != null) {
         result.order = [:]
         orders = from('OrderHeaderAndRoles')
                 .where([roleTypeId: 'BILL_FROM_VENDOR',
                         orderId: parameters.orderId,
+                        partyId: companyPartyId]).queryList()
+    } else {
+        result.orders = []
+        orders = from('OrderHeaderAndRoles')
+                .where([roleTypeId: 'BILL_FROM_VENDOR',
                         partyId: companyPartyId]).queryList()
     }
     orders.each{ order ->
@@ -91,7 +92,9 @@ def getOrders() {
                 productId: item.productId,
                 quantity: item.quantity.toString(),
                 price: item.unitPrice.toString(),
-                description: item.itemDescription
+                description: item.itemDescription,
+                fromDate: null, //TODO: should come from related workeffort
+                thruDate: null // or field to be added to orderItem but need location(facility) too
             ]
             items.add(item)
         }
@@ -99,11 +102,12 @@ def getOrders() {
             .where([roleTypeId: 'BILL_TO_CUSTOMER',
                     orderId: order.orderId]).queryList()
         user = runService('getUsers100', [userPartyId: orderRoles[0].partyId]).user
+        String orderStatusId = '???';
+        if (order.statusId == 'ORDER_CREATED') orderStatusId = 'OrderOpen';
         orderOut = [
             orderId: order.orderId,
-            statusId: order.statusId,
-            placedDate: order.orderDate.toString().substring(0,11),
-            placedTime: order.orderDate.toString().substring(11,16),
+            orderStatusId: orderStatusId,
+            placedDate: order.orderDate.toString().substring(0,19) + 'Z',
             customerPartyId: orderRoles[0].partyId,
             firstName: user?.firstName,
             lastName: user?.lastName,
@@ -111,7 +115,7 @@ def getOrders() {
             grandTotal: order.grandTotal.toString(),
             orderItems: items
         ]
-        if (!parameters.orderId) result.orders.add()
+        if (!parameters.orderId) result.orders.add(orderOut)
         else result.order = orderOut
     }
     return result

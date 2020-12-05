@@ -147,6 +147,7 @@ under the License.
                 when partyId is provided a single user.
         </description>
         <attribute name="userPartyId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
+        <attribute name="userGroupId" type="String" mode="IN" optional="true"/><!-- if provided single user only -->
         <attribute name="companyPartyId" type="String" mode="IN" optional="true"/><!-- if provided get empl of company -->
         <attribute name="users" type="List" mode="OUT" optional="true"/>
         <attribute name="user" type="Map" mode="OUT" optional="true"/>
@@ -280,7 +281,7 @@ under the License.
         location="component://growerp/src/100/CatalogServices100.groovy"
         invoke="deleteCategory" action="POST">
         <description>
-            Delete Category by company admin.
+            Delete Category by company admin or employee
         </description>
         <attribute name="categoryId" type="String" mode="INOUT" optional="false"/>
     </service>
@@ -289,7 +290,7 @@ under the License.
         location="component://growerp/src/100/OrderServices100.groovy"
         invoke="createOrder" action="POST">
         <description>
-            Create order by company admin
+            Create order by company admin or employee
         </description>
         <attribute name="order" type="Map" mode="IN" optional="false"/>
         <attribute name="order" type="Map" mode="OUT" optional="true"/>

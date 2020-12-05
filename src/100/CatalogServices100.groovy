@@ -95,6 +95,7 @@ def getProducts() {
             .filterByDate("productFromDate", "productThruDate")
             .queryList()
     }
+    //logInfo("=======productList: $productList")
     productList.each {
         contents = from('ProductContent')
             .where([productId: it.productId, productContentTypeId: imageSize])
