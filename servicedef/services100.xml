@@ -303,6 +303,7 @@ under the License.
             Get a single or multiple orders of an owned company.
         </description>
         <attribute name="orderId" type="String" mode="IN" optional="true"/>
+        <attribute name="customerPartyId" type="String" mode="IN" optional="true"/>
         <attribute name="orders" type="List" mode="OUT" optional="true"/>
         <attribute name="order" type="Map" mode="OUT" optional="true"/>
     </service>

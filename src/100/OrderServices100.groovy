@@ -76,6 +76,11 @@ def getOrders() {
                 .where([roleTypeId: 'BILL_FROM_VENDOR',
                         orderId: parameters.orderId,
                         partyId: companyPartyId]).queryList()
+    } else if (parameters.customerPartyId && parameters.customerPartyId != null) {
+        result.orders = []
+        orders = from('OrderHeaderAndRoles')
+                .where([roleTypeId: 'BILL_TO_CUSTOMER',
+                        partyId: customerPartyId]).queryList()
     } else {
         result.orders = []
         orders = from('OrderHeaderAndRoles')
