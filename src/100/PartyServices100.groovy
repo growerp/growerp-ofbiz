@@ -452,6 +452,7 @@ def getAuthenticate() {
 }
 
 def createImages() {
+    logInfo("=====create Image ${parameters.type} ${parameters.base64.length()}")
     Map result = success()
     byte[] inputBytes = Base64.getMimeDecoder().decode(parameters.base64);
     int fileSize = inputBytes.size()
@@ -520,6 +521,35 @@ def createImages() {
             [ partyId: parameters.id,
               contentId: contentIdSmall,
               partyContentTypeId: 'GROWERP-SMALL'])
+    }
+    if (parameters.type == 'product') {
+        runService("createProductContent",
+            [ productId: parameters.id,
+              contentId: contentIdLarge,
+              productContentTypeId: 'GROWERP-LARGE'])
+        runService("createProductContent",
+            [ productId: parameters.id,
+              contentId: contentIdMedium,
+              productContentTypeId: 'GROWERP-MEDIUM'])
+        runService("createProductContent",
+            [ productId: parameters.id,
+              contentId: contentIdSmall,
+              productContentTypeId: 'GROWERP-SMALL'])
+    }
+    if (parameters.type == 'category') {
+            logInfo("=========5======create image for cat: ${parameters.id}")
+        runService("createCategoryContent",
+            [ productCategoryId: parameters.id,
+              contentId: contentIdLarge,
+              prodCatContentTypeId: 'GROWERP-LARGE'])
+        runService("createCategoryContent",
+            [ productCategoryId: parameters.id,
+              contentId: contentIdMedium,
+              prodCatContentTypeId: 'GROWERP-MEDIUM'])
+        runService("createCategoryContent",
+            [ productCategoryId: parameters.id,
+              contentId: contentIdSmall,
+              prodCatContentTypeId: 'GROWERP-SMALL'])
     }
     return result
 }

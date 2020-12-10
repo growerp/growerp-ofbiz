@@ -42,6 +42,7 @@ def getCatalog() { // from is company, to is employee
 }
 
 def getCategories() {
+    logInfo("=========3======get category: ${parameters.categoryId}")
     Map result = success()
     companyPartyId = runService("getRelatedCompany100", [:]).companyPartyId
     categoryList = []
@@ -61,7 +62,7 @@ def getCategories() {
         contents = from('ProductCategoryContent')
             .where([productCategoryId: it.productCategoryId, prodCatContentTypeId: imageSize])
             .queryList()
-        String imageDataResource
+        Map imageDataResource
         if (contents) {
             systemLogin = from("UserLogin").where([userLoginId: 'system']).queryOne()
             imageDataResource = runService('getContentAndDataResource',
@@ -74,6 +75,7 @@ def getCategories() {
         if (parameters.categoryId) result.category = category
         else result.categories.add(category)    
     }
+    logInfo("=========4======get category: ${result.category?.image?.length()}")
     return result
 }
 def getProducts() {
@@ -100,7 +102,7 @@ def getProducts() {
         contents = from('ProductContent')
             .where([productId: it.productId, productContentTypeId: imageSize])
             .queryList()
-        String imageDataResource
+        Map imageDataResource
         if (contents) {
             systemLogin = from("UserLogin").where([userLoginId: 'system']).queryOne()
             imageDataResource = runService('getContentAndDataResource',
@@ -148,14 +150,15 @@ def createProduct() {
     runService('addProductToCategory', [
             productId: productId, 
             productCategoryId: parameters.product.categoryId])
-    if (parameters.base64) runService("createImages100",
-        [ base64: parameters.base64,
+    if (parameters.product.image) runService("createImages100",
+        [ base64: parameters.product.image,
           type: 'product',
           id: productId])
     result.product = runService('getProducts100',[productId: productId]).product
     return result
 }
 def updateProduct() {
+    logInfo("===============update product: ${parameters.product.productId}")
     Map result = success()
     if (!isAdmin(parameters.userLogin)) { // only admin can
         return error("No access to user ${parameters.userLogin.partyId}")
@@ -187,6 +190,7 @@ def updateProduct() {
         runService('addProductToCategory', [productId: productId, 
             productCategorId: parameters.product.categoryId])
     }
+    logInfo("=================${parameters.product.image?.length()}")
     if (parameters.product.image) runService("createImages100",
         [ base64: parameters.product.image,
           type: 'product',
@@ -218,6 +222,7 @@ def deleteProduct() {
 }
 
 def createCategory() {
+    logInfo("=========1======create category: ${parameters.category.categoryName}")
     Map result = success()
     // only admin can add employees in his own company
     if (!isAdmin(parameters.userLogin)) { // only admin can
@@ -233,8 +238,9 @@ def createCategory() {
             productCategoryId: productCategoryId, 
             prodCatalogId: catalogs[0].prodCatalogId,
             prodCatalogCategoryTypeId: 'PCCT_BROWSE_ROOT'])
-    if (parameters.base64) runService("createImages100",
-        [ base64: parameters.base64,
+    logInfo("=========2======create category: ${parameters.category.image?.length()}")
+    if (parameters.category.image) runService("createImages100",
+        [ base64: parameters.category.image,
           type: 'category',
           id: productCategoryId])
     result.category = runService('getCategories100',
