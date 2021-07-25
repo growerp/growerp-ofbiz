@@ -1,10 +1,10 @@
 Note: This software is currently not kept up to date with the updated GrowERP flutter frontend which works with Moqui Only.
 
-This OFBiz version works with the growerp frontend of december 10 2020.
-If you like this OFBiz plugin to work with newer GrowERP flutter versions, send a Pull request or sponsor this project.
+This OFBiz plugin version works with the growerp frontend of december 10 2020.
+If you like this OFBiz plugin to work with newer GrowERP flutter versions, send a Pull request or sponsor this project at paypal account admin@antwebsystems.com
 
 
-== GrowERp OFBiz plugin for the Flutter frontend.
+== GrowERP OFBiz plugin for the Flutter frontend.
 ////
 check https://powerman.name/doc/asciidoc for format
 ////
